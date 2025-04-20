@@ -2,6 +2,8 @@
 
 A powerful AI-powered resume analysis tool that helps recruiters and job seekers by providing detailed insights into resumes and job descriptions.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
 ## Features
 
 - 🔍 **Smart Resume Analysis**: Extract key information from resumes including skills, experience, and education
@@ -9,6 +11,11 @@ A powerful AI-powered resume analysis tool that helps recruiters and job seekers
 - 📊 **Detailed Insights**: Get comprehensive analysis and recommendations
 - 🚀 **Fast and Efficient**: Built with FastAPI for high performance
 - 🐳 **Docker Support**: Easy deployment with Docker
+- 🌐 **Web Interface**: Easy-to-use web interface for uploading and analyzing resumes
+
+## Live Demo
+
+Try the live version at: [https://resume-analyzer.onrender.com](https://resume-analyzer.onrender.com)
 
 ## Tech Stack
 
@@ -16,7 +23,7 @@ A powerful AI-powered resume analysis tool that helps recruiters and job seekers
 - **AI/ML**: OpenAI, Gemini, LangChain
 - **Database**: ChromaDB
 - **Frontend**: HTML, CSS, JavaScript
-- **Deployment**: Docker
+- **Deployment**: Docker, Render.com
 
 ## Prerequisites
 
@@ -108,3 +115,23 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Arun Kiran - [@arun3676](https://github.com/arun3676)
 
 Project Link: [https://github.com/arun3676/resume-analyzer](https://github.com/arun3676/resume-analyzer)
+
+## Deployment
+
+This application can be easily deployed to Render.com:
+
+1. Sign up for a free account at [Render.com](https://render.com)
+2. Click "New +" and select "Web Service"
+3. Connect your GitHub repository
+4. Configure the service:
+   - Name: `resume-analyzer`
+   - Environment: `Python`
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+5. Add the following environment variables:
+   - `OPENAI_API_KEY`
+   - `GEMINI_API_KEY`
+   - `PROMPTLAYER_API_KEY`
+6. Click "Create Web Service"
+
+The application will be automatically deployed and available at `https://resume-analyzer.onrender.com`

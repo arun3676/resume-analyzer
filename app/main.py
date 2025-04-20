@@ -15,6 +15,8 @@ from io import BytesIO
 import time
 import os
 from dotenv import load_dotenv
+from pathlib import Path
+import logging
 
 load_dotenv()
 
@@ -22,10 +24,14 @@ from app.config import APP_NAME, APP_VERSION, DEBUG, MLFLOW_TRACKING_URI, EXPERI
 from app.models.schema import ResumeAnalysisRequest, ResumeAnalysisResponse
 from app.agents.react_agent import ResumeReactAgent
 from app.services.parser import extract_skills, extract_experience, extract_education
-from app.services.analyzer import analyze_strengths_weaknesses, calculate_job_match, suggest_improvements
+from app.services.analyzer import analyze_strengths_weaknesses, calculate_job_match, suggest_improvements, analyze_resume
 from app.services.vector_store import initialize_vector_store
-from app.services.logging import initialize_promptlayer
+from app.services.logging import initialize_promptlayer, setup_logging
 from app.services.structured_analyzer import StructuredAnalyzer
+
+# Setup logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 # Initialize the FastAPI app
 app = FastAPI(
@@ -291,3 +297,31 @@ async def structured_analyze(
             status_code=500,
             detail=f"Failed to analyze resume: {str(e)}"
         )
+
+@app.post("/analyze")
+async def analyze(file: UploadFile = File(...)):
+    try:
+        # Validate file type
+        if not file.filename.endswith(('.pdf', '.docx', '.txt')):
+            raise HTTPException(status_code=400, detail="File type not supported. Please upload a PDF, DOCX, or TXT file.")
+        
+        # Save the file temporarily
+        file_path = f"temp_{file.filename}"
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
+        
+        try:
+            # Analyze the resume
+            result = await analyze_resume(file_path)
+            return result
+        finally:
+            # Clean up the temporary file
+            if os.path.exists(file_path):
+                os.remove(file_path)
+    except Exception as e:
+        logger.error(f"Error analyzing resume: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8000)))

@@ -1,34 +1,180 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume Analyzer</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="mb-4">Resume Analyzer</h1>
-        
-        <div class="card">
-            <div class="card-body">
-                <form action="/analyze/file" method="post" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label for="file" class="form-label">Upload Resume (PDF or DOCX)</label>
-                        <input type="file" class="form-control" id="file" name="file" accept=".pdf,.docx" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="job_description" class="form-label">Job Description (Optional)</label>
-                        <textarea class="form-control" id="job_description" name="job_description" rows="5"></textarea>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Analyze Resume</button>
-                </form>
+{% extends "base.html" %}
+
+{% block title %}Resume Analyzer - Upload Your Resume{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold text-gray-800 mb-4">AI-Powered Resume Analysis</h1>
+        <p class="text-xl text-gray-600">Upload your resume and get instant insights and recommendations</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+        <div class="file-upload rounded-lg p-8 text-center cursor-pointer" id="dropZone">
+            <input type="file" id="fileInput" class="hidden" accept=".pdf,.docx,.txt">
+            <div class="mb-4">
+                <i class="fas fa-cloud-upload-alt text-5xl text-gray-400"></i>
             </div>
+            <h3 class="text-xl font-semibold text-gray-700 mb-2">Drag & Drop Your Resume</h3>
+            <p class="text-gray-500 mb-4">or click to browse files</p>
+            <p class="text-sm text-gray-400">Supported formats: PDF, DOCX, TXT</p>
         </div>
     </div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+
+    <div id="loading" class="hidden">
+        <div class="flex flex-col items-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+            <p class="text-gray-600">Analyzing your resume...</p>
+        </div>
+    </div>
+
+    <div id="result" class="hidden">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Analysis Results</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const loading = document.getElementById('loading');
+    const result = document.getElementById('result');
+    const resultContent = document.getElementById('resultContent');
+
+    // Handle drag and drop
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-purple-500');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-purple-500');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-purple-500');
+        const file = e.dataTransfer.files[0];
+        handleFile(file);
+    });
+
+    // Handle click to upload
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        handleFile(file);
+    });
+
+    function handleFile(file) {
+        if (!file) return;
+
+        const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+        if (!validTypes.includes(file.type)) {
+            alert('Please upload a PDF, DOCX, or TXT file.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        loading.classList.remove('hidden');
+        result.classList.add('hidden');
+
+        axios.post('/analyze', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+        .then(response => {
+            loading.classList.add('hidden');
+            result.classList.remove('hidden');
+            displayResults(response.data);
+        })
+        .catch(error => {
+            loading.classList.add('hidden');
+            alert('Error analyzing resume: ' + error.message);
+        });
+    }
+
+    function displayResults(data) {
+        let html = '';
+        
+        // Skills Section
+        if (data.skills) {
+            html += `
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Skills</h3>
+                    <div class="flex flex-wrap gap-2">
+                        ${data.skills.map(skill => `
+                            <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                                ${skill}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Experience Section
+        if (data.experience) {
+            html += `
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Experience</h3>
+                    <div class="space-y-4">
+                        ${data.experience.map(exp => `
+                            <div class="border-l-4 border-purple-500 pl-4">
+                                <h4 class="font-semibold text-gray-800">${exp.title}</h4>
+                                <p class="text-gray-600">${exp.company}</p>
+                                <p class="text-sm text-gray-500">${exp.duration}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Education Section
+        if (data.education) {
+            html += `
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Education</h3>
+                    <div class="space-y-4">
+                        ${data.education.map(edu => `
+                            <div class="border-l-4 border-purple-500 pl-4">
+                                <h4 class="font-semibold text-gray-800">${edu.degree}</h4>
+                                <p class="text-gray-600">${edu.institution}</p>
+                                <p class="text-sm text-gray-500">${edu.year}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Recommendations Section
+        if (data.recommendations) {
+            html += `
+                <div class="mb-6">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Recommendations</h3>
+                    <ul class="list-disc list-inside space-y-2 text-gray-600">
+                        ${data.recommendations.map(rec => `
+                            <li>${rec}</li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        resultContent.innerHTML = html;
+    }
+});
+</script>
+{% endblock %}
