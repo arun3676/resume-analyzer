@@ -1,0 +1,15 @@
+artifact_uri: file:C:\Users\ARUN\Downloads\resume-analyzer\mlruns/654487902487977878/4867b7299ecb4fae92a8dde4a12905aa/artifacts
+end_time: 1745042337364
+entry_point_name: ''
+experiment_id: '654487902487977878'
+lifecycle_stage: active
+run_id: 4867b7299ecb4fae92a8dde4a12905aa
+run_name: beautiful-colt-786
+run_uuid: 4867b7299ecb4fae92a8dde4a12905aa
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745042336665
+status: 4
+tags: []
+user_id: ARUN

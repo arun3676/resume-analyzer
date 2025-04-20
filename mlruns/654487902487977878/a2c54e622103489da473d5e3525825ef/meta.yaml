@@ -1,0 +1,15 @@
+artifact_uri: file:C:\Users\ARUN\Downloads\resume-analyzer\mlruns/654487902487977878/a2c54e622103489da473d5e3525825ef/artifacts
+end_time: 1745044497728
+entry_point_name: ''
+experiment_id: '654487902487977878'
+lifecycle_stage: active
+run_id: a2c54e622103489da473d5e3525825ef
+run_name: awesome-vole-814
+run_uuid: a2c54e622103489da473d5e3525825ef
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745044497366
+status: 4
+tags: []
+user_id: ARUN

@@ -1,0 +1,15 @@
+artifact_uri: file:C:\Users\ARUN\Downloads\resume-analyzer\mlruns/654487902487977878/a7bbe962f659497e89a5ab8a12d6e88a/artifacts
+end_time: 1745044636251
+entry_point_name: ''
+experiment_id: '654487902487977878'
+lifecycle_stage: active
+run_id: a7bbe962f659497e89a5ab8a12d6e88a
+run_name: secretive-midge-173
+run_uuid: a7bbe962f659497e89a5ab8a12d6e88a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745044635854
+status: 4
+tags: []
+user_id: ARUN

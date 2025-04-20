@@ -1,0 +1,15 @@
+artifact_uri: file:C:\Users\ARUN\Downloads\resume-analyzer\mlruns/654487902487977878/7b5a1a70914f447384247d8f27396027/artifacts
+end_time: 1745043973202
+entry_point_name: ''
+experiment_id: '654487902487977878'
+lifecycle_stage: active
+run_id: 7b5a1a70914f447384247d8f27396027
+run_name: amazing-smelt-70
+run_uuid: 7b5a1a70914f447384247d8f27396027
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1745043972707
+status: 4
+tags: []
+user_id: ARUN
