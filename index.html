@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .file-upload {
+            border: 2px dashed #cbd5e0;
+            transition: all 0.3s ease;
+        }
+        .file-upload:hover {
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-6 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-file-alt text-2xl mr-2"></i>
+                    <span class="font-semibold text-xl">Resume Analyzer</span>
+                </div>
+                <div class="flex items-center">
+                    <a href="https://github.com/arun3676/resume-analyzer" target="_blank" class="text-white hover:text-gray-200">
+                        <i class="fab fa-github text-2xl"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-6 py-8">
+        <div class="max-w-3xl mx-auto">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-800 mb-4">AI-Powered Resume Analysis</h1>
+                <p class="text-xl text-gray-600">Upload your resume and get instant insights and recommendations</p>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <div class="file-upload rounded-lg p-8 text-center cursor-pointer" id="dropZone">
+                    <input type="file" id="fileInput" class="hidden" accept=".pdf,.docx,.txt">
+                    <div class="mb-4">
+                        <i class="fas fa-cloud-upload-alt text-5xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Drag & Drop Your Resume</h3>
+                    <p class="text-gray-500 mb-4">or click to browse files</p>
+                    <p class="text-sm text-gray-400">Supported formats: PDF, DOCX, TXT</p>
+                </div>
+            </div>
+
+            <div id="loading" class="hidden">
+                <div class="flex flex-col items-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+                    <p class="text-gray-600">Analyzing your resume...</p>
+                </div>
+            </div>
+
+            <div id="result" class="hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Analysis Results</h2>
+                    <div id="resultContent"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white shadow-lg mt-8">
+        <div class="container mx-auto px-6 py-4">
+            <div class="flex flex-col items-center">
+                <p class="text-gray-600 text-sm">© 2024 Resume Analyzer. All rights reserved.</p>
+                <p class="text-gray-500 text-xs mt-2">Built with FastAPI and AI</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+
+            // Handle drag and drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-purple-500');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('border-purple-500');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-purple-500');
+                const file = e.dataTransfer.files[0];
+                handleFile(file);
+            });
+
+            // Handle click to upload
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                handleFile(file);
+            });
+
+            function handleFile(file) {
+                if (!file) return;
+
+                const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Please upload a PDF, DOCX, or TXT file.');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                loading.classList.remove('hidden');
+                result.classList.add('hidden');
+
+                // Use your deployed backend URL here
+                const backendUrl = 'https://resume-analyzer.onrender.com/analyze';
+                
+                axios.post(backendUrl, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                })
+                .then(response => {
+                    loading.classList.add('hidden');
+                    result.classList.remove('hidden');
+                    displayResults(response.data);
+                })
+                .catch(error => {
+                    loading.classList.add('hidden');
+                    alert('Error analyzing resume: ' + error.message);
+                });
+            }
+
+            function displayResults(data) {
+                let html = '';
+                
+                // Skills Section
+                if (data.skills) {
+                    html += `
+                        <div class="mb-6">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Skills</h3>
+                            <div class="flex flex-wrap gap-2">
+                                ${data.skills.map(skill => `
+                                    <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                                        ${skill}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Experience Section
+                if (data.experience) {
+                    html += `
+                        <div class="mb-6">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Experience</h3>
+                            <div class="space-y-4">
+                                ${data.experience.map(exp => `
+                                    <div class="border-l-4 border-purple-500 pl-4">
+                                        <h4 class="font-semibold text-gray-800">${exp.title}</h4>
+                                        <p class="text-gray-600">${exp.company}</p>
+                                        <p class="text-sm text-gray-500">${exp.duration}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Education Section
+                if (data.education) {
+                    html += `
+                        <div class="mb-6">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Education</h3>
+                            <div class="space-y-4">
+                                ${data.education.map(edu => `
+                                    <div class="border-l-4 border-purple-500 pl-4">
+                                        <h4 class="font-semibold text-gray-800">${edu.degree}</h4>
+                                        <p class="text-gray-600">${edu.institution}</p>
+                                        <p class="text-sm text-gray-500">${edu.year}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Recommendations Section
+                if (data.recommendations) {
+                    html += `
+                        <div class="mb-6">
+                            <h3 class="text-xl font-semibold text-gray-700 mb-3">Recommendations</h3>
+                            <ul class="list-disc list-inside space-y-2 text-gray-600">
+                                ${data.recommendations.map(rec => `
+                                    <li>${rec}</li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                resultContent.innerHTML = html;
+            }
+        });
+    </script>
+</body>
+</html> 
