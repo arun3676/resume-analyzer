@@ -1,0 +1,23 @@
+[build]
+  command = "pip install -r requirements.txt"
+  publish = "app/static"
+  functions = "netlify/functions"
+
+[build.environment]
+  PYTHON_VERSION = "3.11"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[dev]
+  command = "python -m uvicorn app.main:app --reload"
+  port = 8000
+  targetPort = 8000
+  publish = "app/static"
+  autoLaunch = true 
