@@ -16,5 +16,5 @@ Provide:
 1. Key skills & experience
 2. Strengths & weaknesses
 3. Improvement suggestions
-4. Job match assessment (if job description provided)
+4. Job match assessment (if job description provided). Include a list of matched skills, skills found in the resume, skills found in the job description, and a skill match percentage.
 """

@@ -1,0 +1,1272 @@
+{% extends "base.html" %}
+
+{% block title %}Skills & Career Dashboard - Resume Analyzer{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .career-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .career-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .career-card.selected {
+            border-color: #14b8a6;
+            background-color: #f0fdfa;
+        }
+        .skill-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            margin: 0.25rem;
+            background-color: #e0f2f1;
+            color: #0f766e;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .skill-badge.missing {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        .stage-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .stage-card:hover {
+            transform: scale(1.02);
+        }
+        .match-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border-radius: 9999px;
+            padding: 0.5rem 1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .learning-resource-card {
+            border-left: 4px solid #3b82f6;
+            transition: all 0.2s ease;
+        }
+        .learning-resource-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto p-4 md:p-8" x-data="skillsCareerData()">
+    <header class="mb-8 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Skills & Career Dashboard</h1>
+        <p class="text-gray-600 text-lg">Discover your ideal career path based on your skills</p>
+        
+        <!-- Debug Info -->
+        <div x-show="debugInfo || error" class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+            <p x-show="debugInfo" class="text-yellow-800">
+                <i class="fas fa-info-circle mr-1"></i>
+                Debug: <span x-text="debugInfo"></span>
+            </p>
+            <p x-show="error" class="text-red-800">
+                <i class="fas fa-exclamation-triangle mr-1"></i>
+                Error: <span x-text="error"></span>
+            </p>
+        </div>
+    </header>
+
+    <!-- Resume Skills Summary -->
+    <div x-show="extractedSkills.length > 0" class="bg-gradient-to-r from-teal-50 to-blue-50 rounded-xl p-6 mb-8">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <i class="fas fa-certificate text-teal-600 mr-2"></i>
+            Your Extracted Skills
+        </h2>
+        <div class="flex flex-wrap gap-2 mb-4">
+            <template x-for="skill in extractedSkills" :key="skill">
+                <span class="skill-badge" x-text="skill"></span>
+            </template>
+        </div>
+        <p class="text-sm text-gray-600">
+            <i class="fas fa-info-circle mr-1"></i>
+            We found <strong x-text="extractedSkills.length"></strong> skills in your resume. 
+            Based on these, here are your recommended career paths:
+        </p>
+    </div>
+
+    <!-- Loading State -->
+    <div x-show="loading.recommendations" class="text-center py-12">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-teal-600 mx-auto mb-4"></div>
+        <p class="text-gray-600 text-lg">Analyzing your skills and finding the best career matches...</p>
+    </div>
+
+    <!-- Career Path Recommendations -->
+    <div x-show="!loading.recommendations && recommendations.length > 0" class="mb-12">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">
+            <i class="fas fa-compass text-blue-600 mr-2"></i>
+            Smart Career Recommendations
+        </h2>
+        
+        <!-- Resume Analysis Summary -->
+        <div x-show="recommendations.length > 0 && recommendations[0].resume_analysis" class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                <i class="fas fa-brain text-purple-600 mr-2"></i>
+                Resume Intelligence Analysis
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">Detected Roles:</p>
+                    <div class="flex flex-wrap gap-1">
+                        <template x-for="role in recommendations[0]?.resume_analysis?.detected_roles" :key="role">
+                            <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium" x-text="role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())"></span>
+                        </template>
+                        <span x-show="!recommendations[0]?.resume_analysis?.detected_roles?.length" class="text-gray-400 text-xs italic">None detected</span>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">Experience Level:</p>
+                    <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium" x-text="recommendations[0]?.resume_analysis?.experience_level?.replace(/\b\w/g, l => l.toUpperCase())"></span>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600 mb-1">Analysis Confidence:</p>
+                    <div class="flex items-center">
+                        <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                            <div class="h-2 bg-green-500 rounded-full transition-all duration-500" 
+                                 :style="'width: ' + (recommendations[0]?.resume_analysis?.confidence_score * 100 || 0) + '%'"></div>
+                        </div>
+                        <span class="text-xs font-medium" x-text="Math.round((recommendations[0]?.resume_analysis?.confidence_score || 0) * 100) + '%'"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            <template x-for="(rec, index) in recommendations" :key="rec.career_path.id">
+                <div class="career-card bg-white rounded-xl shadow-lg p-6 relative"
+                     :class="{'selected': selectedPath && selectedPath.id === rec.career_path.id}"
+                     @click="selectRecommendedPath(rec)">
+                    
+                    <!-- Confidence and Relevance Badges -->
+                    <div class="absolute top-4 right-4 flex flex-col items-end gap-2">
+                        <div class="match-badge" x-show="rec.overall_match_percentage >= 50">
+                            <span x-text="rec.overall_match_percentage + '%'"></span> Skills
+                        </div>
+                        <div class="px-3 py-1 rounded-full text-xs font-medium"
+                             :class="{
+                                 'bg-green-100 text-green-800': rec.confidence_level === 'Very High' || rec.confidence_level === 'High',
+                                 'bg-yellow-100 text-yellow-800': rec.confidence_level === 'Medium',
+                                 'bg-orange-100 text-orange-800': rec.confidence_level === 'Low'
+                             }">
+                            <i class="fas fa-star mr-1"></i>
+                            <span x-text="rec.confidence_level"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Career Path Info -->
+                    <div class="mb-4 pr-20">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2" x-text="rec.career_path.name"></h3>
+                        <p class="text-sm text-gray-600 mb-3" x-text="rec.career_path.description"></p>
+                        
+                        <!-- Why Recommended -->
+                        <div class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-4">
+                            <p class="text-xs text-blue-800">
+                                <i class="fas fa-lightbulb mr-1"></i>
+                                <strong>Why recommended:</strong> <span x-text="rec.why_recommended"></span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Circle -->
+                    <div class="flex items-center justify-center mb-4">
+                        <div class="relative w-24 h-24">
+                            <svg class="w-24 h-24">
+                                <circle cx="48" cy="48" r="40" stroke="#e5e7eb" stroke-width="6" fill="none"></circle>
+                                <circle class="progress-ring" 
+                                        cx="48" cy="48" r="40" 
+                                        :stroke="getProgressColor(rec.relevance_score)"
+                                        stroke-width="6" 
+                                        fill="none"
+                                        stroke-linecap="round"
+                                        :stroke-dasharray="251.33"
+                                        :stroke-dashoffset="251.33 - (251.33 * rec.relevance_score / 100)">
+                                </circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-lg font-bold" x-text="Math.round(rec.relevance_score) + '%'"></span>
+                                <span class="text-xs text-gray-500">Relevance</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Stage Preview -->
+                    <div class="space-y-2">
+                        <template x-for="stage in rec.stages_match.slice(0, 3)" :key="stage.stage_name">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-600 truncate" x-text="stage.stage_name.split(' ').slice(0, 3).join(' ')"></span>
+                                <div class="flex items-center">
+                                    <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                        <div class="h-2 rounded-full transition-all duration-500"
+                                             :class="stage.match_percentage >= 70 ? 'bg-green-500' : stage.match_percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'"
+                                             :style="'width: ' + stage.match_percentage + '%'"></div>
+                                    </div>
+                                    <span class="text-xs font-medium" x-text="stage.match_percentage + '%'"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <button class="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-arrow-right mr-2"></i>
+                        Explore This Path
+                    </button>
+                </div>
+            </template>
+        </div>
+        
+        <!-- No Recommendations Message -->
+        <div x-show="recommendations.length === 0" class="text-center py-12">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-search text-gray-400 text-2xl"></i>
+            </div>
+            <h4 class="text-lg font-semibold text-gray-800 mb-2">No Relevant Career Paths Found</h4>
+            <p class="text-gray-600">Try uploading a more detailed resume or adding more skills to get better recommendations.</p>
+        </div>
+    </div>
+
+    <!-- Selected Path Details -->
+    <div x-show="selectedRecommendation" class="bg-white rounded-xl shadow-xl p-8 mb-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">
+            <i class="fas fa-route text-purple-600 mr-2"></i>
+            <span x-text="selectedRecommendation?.career_path.name"></span>
+        </h2>
+        
+        <!-- Career Stages Timeline -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Career Progression Stages</h3>
+            <div class="relative">
+                <div class="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300"></div>
+                <div class="space-y-6">
+                    <template x-for="(stage, index) in selectedRecommendation?.stages_match" :key="stage.stage_name">
+                        <div class="stage-card relative flex items-start" @click="selectStageForAnalysis(stage)">
+                            <div class="flex-shrink-0 w-16 h-16 rounded-full flex items-center justify-center z-10"
+                                 :class="stage.match_percentage >= 70 ? 'bg-green-500' : stage.match_percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'">
+                                <span class="text-white font-bold" x-text="index + 1"></span>
+                            </div>
+                            <div class="ml-6 flex-grow bg-gray-50 rounded-lg p-4">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-semibold text-gray-800" x-text="stage.stage_name"></h4>
+                                    <span class="text-sm font-medium px-2 py-1 rounded-full"
+                                          :class="stage.match_percentage >= 70 ? 'bg-green-100 text-green-800' : stage.match_percentage >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'"
+                                          x-text="stage.match_percentage + '% ready'"></span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div>
+                                        <p class="text-gray-600 mb-1">Skills You Have:</p>
+                                        <div class="flex flex-wrap gap-1">
+                                            <template x-for="skill in stage.matching_skills" :key="skill">
+                                                <span class="skill-badge text-xs" x-text="skill"></span>
+                                            </template>
+                                            <span x-show="stage.matching_skills.length === 0" class="text-gray-400 italic">None yet</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-gray-600 mb-1">Skills to Learn:</p>
+                                        <div class="flex flex-wrap gap-1">
+                                            <template x-for="skill in stage.missing_skills" :key="skill">
+                                                <span class="skill-badge missing text-xs" x-text="skill"></span>
+                                            </template>
+                                            <span x-show="stage.missing_skills.length === 0" class="text-green-600 font-medium">
+                                                <i class="fas fa-check-circle mr-1"></i>All ready!
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="mt-3 text-teal-600 hover:text-teal-700 font-medium text-sm">
+                                    <i class="fas fa-arrow-right mr-1"></i>
+                                    View Learning Resources
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Skills Overview Chart -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Skills Coverage</h3>
+                <div class="h-48">
+                    <canvas id="skillsChart"></canvas>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-4">Learning Resources</h3>
+                <div class="space-y-4 max-h-80 overflow-y-auto" x-show="selectedStageAnalysis">
+                    <template x-for="skill in selectedStageAnalysis?.missing_skills_details" :key="skill.id">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-book text-red-600 text-sm"></i>
+                                </div>
+                                <h4 class="font-semibold text-gray-800" x-text="skill.name"></h4>
+                                <span class="ml-auto text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">Missing</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mb-3" x-text="skill.description || 'Essential skill for this career stage'"></p>
+                            
+                            <div class="space-y-2">
+                                <template x-for="resource in skill.learning_resources" :key="resource.url">
+                                    <a :href="resource.url" target="_blank" class="learning-resource-card block bg-gradient-to-r from-blue-50 to-indigo-50 p-3 rounded-lg hover:from-blue-100 hover:to-indigo-100 transition-all duration-200">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex-grow">
+                                                <p class="font-medium text-blue-700" x-text="resource.name"></p>
+                                                <div class="flex items-center text-xs text-gray-600 mt-1">
+                                                    <i class="fas fa-graduation-cap mr-1"></i>
+                                                    <span x-text="resource.platform"></span>
+                                                    <span class="mx-1">•</span>
+                                                    <span x-text="resource.type"></span>
+                                                    <span class="ml-2 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs">
+                                                        <i class="fas fa-star mr-1"></i>Recommended
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="ml-3 flex items-center">
+                                                <i class="fas fa-external-link-alt text-blue-400"></i>
+                                            </div>
+                                        </div>
+                                    </a>
+                                </template>
+                                
+                                <!-- Add some additional generic resources if no specific ones exist -->
+                                <template x-if="!skill.learning_resources || skill.learning_resources.length === 0">
+                                    <div class="space-y-2">
+                                        <a :href="'https://www.coursera.org/search?query=' + encodeURIComponent(skill.name)" target="_blank" class="learning-resource-card block bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg hover:from-green-100 hover:to-emerald-100 transition-all duration-200">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <p class="font-medium text-green-700" x-text="'Search ' + skill.name + ' on Coursera'"></p>
+                                                    <p class="text-xs text-gray-600">
+                                                        <i class="fas fa-graduation-cap mr-1"></i>Coursera • Online Courses
+                                                    </p>
+                                                </div>
+                                                <i class="fas fa-external-link-alt text-green-400"></i>
+                                            </div>
+                                        </a>
+                                        <a :href="'https://www.udemy.com/courses/search/?q=' + encodeURIComponent(skill.name)" target="_blank" class="learning-resource-card block bg-gradient-to-r from-purple-50 to-violet-50 p-3 rounded-lg hover:from-purple-100 hover:to-violet-100 transition-all duration-200">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <p class="font-medium text-purple-700" x-text="'Search ' + skill.name + ' on Udemy'"></p>
+                                                    <p class="text-xs text-gray-600">
+                                                        <i class="fas fa-video mr-1"></i>Udemy • Video Courses
+                                                    </p>
+                                                </div>
+                                                <i class="fas fa-external-link-alt text-purple-400"></i>
+                                            </div>
+                                        </a>
+                                        <a :href="'https://www.youtube.com/results?search_query=' + encodeURIComponent(skill.name + ' tutorial')" target="_blank" class="learning-resource-card block bg-gradient-to-r from-red-50 to-pink-50 p-3 rounded-lg hover:from-red-100 hover:to-pink-100 transition-all duration-200">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <p class="font-medium text-red-700" x-text="'Watch ' + skill.name + ' tutorials'"></p>
+                                                    <p class="text-xs text-gray-600">
+                                                        <i class="fab fa-youtube mr-1"></i>YouTube • Free Tutorials
+                                                    </p>
+                                                </div>
+                                                <i class="fas fa-external-link-alt text-red-400"></i>
+                                            </div>
+                                        </a>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                            <!-- Estimated Learning Time -->
+                            <div class="mt-3 pt-3 border-t border-gray-200">
+                                <div class="flex items-center justify-between text-xs text-gray-500">
+                                    <span>
+                                        <i class="fas fa-clock mr-1"></i>
+                                        Estimated time: 2-4 weeks
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-signal mr-1"></i>
+                                        Difficulty: Intermediate
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <!-- No missing skills message -->
+                    <div x-show="!selectedStageAnalysis?.missing_skills_details || selectedStageAnalysis?.missing_skills_details.length === 0" class="text-center py-8">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-800 mb-2">All Skills Mastered!</h4>
+                        <p class="text-gray-600">You have all the required skills for this career stage.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Career Trajectory Visualization Section -->
+    <div x-show="selectedRecommendation" class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl shadow-xl p-8 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-800">
+                <i class="fas fa-route text-indigo-600 mr-2"></i>
+                Career Trajectory Visualization
+            </h2>
+            <button @click="generateCareerTrajectory()" 
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    :disabled="loading.trajectory">
+                <i class="fas fa-rocket mr-2"></i>
+                <span x-show="!loading.trajectory">Generate My Timeline</span>
+                <span x-show="loading.trajectory">Generating...</span>
+            </button>
+        </div>
+        
+        <!-- Interactive Career Timeline -->
+        <div x-show="careerTrajectory" class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">
+                <i class="fas fa-calendar-alt text-purple-600 mr-2"></i>
+                Your Personalized Career Timeline
+            </h3>
+            
+            <!-- Timeline Header -->
+            <div class="bg-white rounded-lg p-6 mb-6 shadow-sm">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-indigo-600" x-text="careerTrajectory?.current_stage || 'Current Stage'"></div>
+                        <div class="text-sm text-gray-600">Current Position</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600" x-text="careerTrajectory?.target_stage || 'Target Stage'"></div>
+                        <div class="text-sm text-gray-600">Career Goal</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600" x-text="getTrajectoryDuration() + ' months'"></div>
+                        <div class="text-sm text-gray-600">Estimated Duration</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Interactive Timeline -->
+            <div class="relative">
+                <div class="absolute left-8 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
+                <div class="space-y-8">
+                    <template x-for="(evolution, index) in careerTrajectory?.stage_evolutions" :key="evolution.stage_name">
+                        <div class="relative flex items-start cursor-pointer transform transition-all duration-300 hover:scale-105"
+                             @click="selectStageEvolution(evolution)">
+                            <!-- Timeline Node -->
+                            <div class="flex-shrink-0 w-16 h-16 rounded-full flex items-center justify-center z-10 shadow-lg border-4 border-white"
+                                 :class="getStageStatusColor(evolution.status)">
+                                <i class="text-white text-lg" :class="getStageStatusIcon(evolution.status)"></i>
+                            </div>
+                            
+                            <!-- Stage Card -->
+                            <div class="ml-6 flex-grow bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h4 class="text-lg font-bold text-gray-800" x-text="evolution.stage_name"></h4>
+                                        <p class="text-sm text-gray-600">
+                                            <i class="fas fa-calendar mr-1"></i>
+                                            <span x-text="formatDate(evolution.target_completion_date)"></span>
+                                            <span class="ml-4">
+                                                <i class="fas fa-clock mr-1"></i>
+                                                <span x-text="evolution.estimated_duration_months + ' months'"></span>
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-2xl font-bold" 
+                                             :class="evolution.completion_percentage >= 70 ? 'text-green-600' : evolution.completion_percentage >= 40 ? 'text-yellow-600' : 'text-red-600'"
+                                             x-text="Math.round(evolution.completion_percentage) + '%'"></div>
+                                        <div class="text-xs text-gray-500">Complete</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Progress Bar -->
+                                <div class="w-full bg-gray-200 rounded-full h-3 mb-4">
+                                    <div class="h-3 rounded-full transition-all duration-1000"
+                                         :class="evolution.completion_percentage >= 70 ? 'bg-green-500' : evolution.completion_percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'"
+                                         :style="'width: ' + evolution.completion_percentage + '%'"></div>
+                                </div>
+                                
+                                <!-- Skill Milestones Preview -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700 mb-2">Skills to Master:</p>
+                                        <div class="flex flex-wrap gap-1">
+                                            <template x-for="milestone in evolution.skill_milestones.slice(0, 4)" :key="milestone.skill_id">
+                                                <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium" 
+                                                      x-text="milestone.skill_name"></span>
+                                            </template>
+                                            <span x-show="evolution.skill_milestones.length > 4" 
+                                                  class="px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs"
+                                                  x-text="'+' + (evolution.skill_milestones.length - 4) + ' more'"></span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-700 mb-2">Timeline:</p>
+                                        <div class="space-y-1">
+                                            <div class="flex items-center text-xs text-gray-600">
+                                                <i class="fas fa-play mr-2 text-green-500"></i>
+                                                Start: <span x-text="formatDate(evolution.start_date) || 'Ready to begin'"></span>
+                                            </div>
+                                            <div class="flex items-center text-xs text-gray-600">
+                                                <i class="fas fa-flag-checkered mr-2 text-purple-500"></i>
+                                                Target: <span x-text="formatDate(evolution.target_completion_date)"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Status Badge -->
+                                <div class="mt-4 flex justify-between items-center">
+                                    <span class="px-3 py-1 rounded-full text-xs font-medium"
+                                          :class="getStatusBadgeColor(evolution.status)"
+                                          x-text="evolution.status"></span>
+                                    <button class="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+                                        <i class="fas fa-arrow-right mr-1"></i>View Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Skill Evolution Tracking -->
+        <div x-show="skillEvolutions.length > 0" class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">
+                <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                Skill Evolution Tracking
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <template x-for="evolution in skillEvolutions.slice(0, 4)" :key="evolution.skill_id">
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-semibold text-gray-800" x-text="evolution.skill_name"></h4>
+                                <p class="text-sm text-gray-600">
+                                    <i class="fas fa-trending-up mr-1"></i>
+                                    Learning velocity: <span x-text="evolution.learning_velocity.toFixed(1)"></span>/month
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-blue-600" 
+                                     x-text="getCurrentSkillLevel(evolution)"></div>
+                                <div class="text-xs text-gray-500">Current Level</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mini Chart Area -->
+                        <div class="h-20 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg flex items-end p-2 mb-3">
+                            <template x-for="(point, index) in evolution.historical_levels.concat(evolution.projected_levels).slice(-12)" :key="index">
+                                <div class="flex-1 mx-0.5">
+                                    <div class="w-full bg-blue-400 rounded-t"
+                                         :style="'height: ' + (point.level / 5 * 60) + 'px'"
+                                         :class="index >= evolution.historical_levels.length ? 'bg-purple-400 opacity-60' : 'bg-blue-500'"></div>
+                                </div>
+                            </template>
+                        </div>
+                        
+                        <!-- Mastery Prediction -->
+                        <div x-show="evolution.mastery_prediction_date" class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-3">
+                            <p class="text-sm text-purple-700">
+                                <i class="fas fa-star mr-1"></i>
+                                <strong>Mastery predicted by:</strong>
+                                <span x-text="formatDate(evolution.mastery_prediction_date)"></span>
+                            </p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- View All Skills Button -->
+            <div class="text-center mt-6">
+                <button @click="showAllSkillEvolutions = !showAllSkillEvolutions" 
+                        class="bg-white border border-gray-300 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                    <span x-show="!showAllSkillEvolutions">
+                        <i class="fas fa-expand mr-2"></i>View All <span x-text="skillEvolutions.length"></span> Skills
+                    </span>
+                    <span x-show="showAllSkillEvolutions">
+                        <i class="fas fa-compress mr-2"></i>Show Less
+                    </span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Industry Transition Pathways -->
+        <div x-show="industryTransitions.length > 0" class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">
+                <i class="fas fa-exchange-alt text-orange-600 mr-2"></i>
+                Industry Transition Pathways
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <template x-for="transition in industryTransitions" :key="transition.from_industry + transition.to_industry">
+                    <div class="bg-white rounded-lg p-6 shadow-sm border-l-4"
+                         :class="getTransitionDifficultyColor(transition.transition_difficulty)">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-semibold text-gray-800">
+                                    <span x-text="transition.from_industry.charAt(0).toUpperCase() + transition.from_industry.slice(1)"></span>
+                                    <i class="fas fa-arrow-right mx-2 text-gray-400"></i>
+                                    <span x-text="transition.to_industry.charAt(0).toUpperCase() + transition.to_industry.slice(1)"></span>
+                                </h4>
+                                <p class="text-sm text-gray-600">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <span x-text="transition.estimated_transition_time_months + ' months'"></span>
+                                    <span class="ml-4">
+                                        <i class="fas fa-chart-bar mr-1"></i>
+                                        <span x-text="Math.round(transition.success_rate * 100) + '% success rate'"></span>
+                                    </span>
+                                </p>
+                            </div>
+                            <span class="px-3 py-1 rounded-full text-xs font-medium"
+                                  :class="getDifficultyBadgeColor(transition.transition_difficulty)"
+                                  x-text="transition.transition_difficulty"></span>
+                        </div>
+                        
+                        <!-- Required Skills -->
+                        <div class="mb-4">
+                            <p class="text-sm font-medium text-gray-700 mb-2">Required Skills for Transition:</p>
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="skillId in transition.required_skills" :key="skillId">
+                                    <span class="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium" 
+                                          x-text="getSkillNameById(skillId)"></span>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Common Transition Roles -->
+                        <div class="mb-4" x-show="transition.common_transition_roles.length > 0">
+                            <p class="text-sm font-medium text-gray-700 mb-2">Common Transition Roles:</p>
+                            <div class="flex flex-wrap gap-1">
+                                <template x-for="role in transition.common_transition_roles" :key="role">
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs" 
+                                          x-text="role"></span>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Success Indicator -->
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm font-medium text-gray-700">Transition Success Rate</span>
+                                <span class="text-sm font-bold" x-text="Math.round(transition.success_rate * 100) + '%'"></span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="h-2 rounded-full transition-all duration-1000"
+                                     :class="transition.success_rate >= 0.8 ? 'bg-green-500' : transition.success_rate >= 0.6 ? 'bg-yellow-500' : 'bg-red-500'"
+                                     :style="'width: ' + (transition.success_rate * 100) + '%'"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Career Growth Patterns -->
+        <div x-show="careerGrowthPatterns.length > 0">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">
+                <i class="fas fa-seedling text-green-600 mr-2"></i>
+                Career Growth Patterns
+            </h3>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <template x-for="pattern in careerGrowthPatterns" :key="pattern.pattern_id">
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <div class="mb-4">
+                            <h4 class="font-semibold text-gray-800 mb-2" x-text="pattern.pattern_name"></h4>
+                            <p class="text-sm text-gray-600" x-text="pattern.description"></p>
+                        </div>
+                        
+                        <!-- Growth Timeline -->
+                        <div class="mb-4">
+                            <p class="text-sm font-medium text-gray-700 mb-3">Typical Progression:</p>
+                            <div class="space-y-2">
+                                <template x-for="(role, index) in pattern.typical_progression" :key="index">
+                                    <div class="flex items-center">
+                                        <div class="w-6 h-6 rounded-full bg-green-100 text-green-600 text-xs flex items-center justify-center mr-3 font-medium"
+                                             x-text="index + 1"></div>
+                                        <span class="text-sm text-gray-700" x-text="role"></span>
+                                        <span x-show="index < pattern.average_timeframes.length" 
+                                              class="ml-auto text-xs text-gray-500">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            <span x-text="pattern.average_timeframes[index] + ' months'"></span>
+                                        </span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Success Indicators -->
+                        <div class="bg-green-50 rounded-lg p-3">
+                            <p class="text-sm font-medium text-green-800 mb-2">Success Indicators:</p>
+                            <ul class="text-xs text-green-700 space-y-1">
+                                <template x-for="indicator in pattern.success_indicators.slice(0, 3)" :key="indicator">
+                                    <li class="flex items-center">
+                                        <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                                        <span x-text="indicator"></span>
+                                    </li>
+                                </template>
+                            </ul>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function skillsCareerData() {
+        return {
+            loading: { recommendations: false, analysis: false, trajectory: false },
+            extractedSkills: [],
+            extractedSkillIds: [],
+            recommendations: [],
+            selectedRecommendation: null,
+            selectedPath: null,
+            selectedStageAnalysis: null,
+            skillsChart: null,
+            error: null,
+            debugInfo: '',
+
+            // Career Trajectory Data
+            careerTrajectory: null,
+            skillEvolutions: [],
+            industryTransitions: [],
+            careerGrowthPatterns: [],
+            showAllSkillEvolutions: false,
+
+            init() {
+                console.log('[DEBUG] Skills Dashboard initializing...');
+                this.debugInfo = 'Initializing...';
+                
+                try {
+                    this.loadExtractedSkills();
+                    console.log('[DEBUG] Extracted skills:', this.extractedSkills);
+                    console.log('[DEBUG] Extracted skill IDs:', this.extractedSkillIds);
+                    
+                    if (this.extractedSkillIds.length > 0) {
+                        console.log('[DEBUG] Getting career recommendations...');
+                        this.getCareerRecommendations();
+                    } else {
+                        console.log('[DEBUG] No skills found, trying to extract from resume...');
+                        this.debugInfo = 'No skills found. Checking for resume...';
+                        
+                        // Try to extract from resume if no skills found
+                        const resumeText = sessionStorage.getItem('resumeText');
+                        if (resumeText) {
+                            console.log('[DEBUG] Resume found, extracting skills...');
+                            this.extractSkillsFromResume(resumeText);
+                        } else {
+                            console.log('[DEBUG] No resume found either');
+                            this.debugInfo = 'No resume or skills found. Please upload a resume first.';
+                        }
+                    }
+                } catch (error) {
+                    console.error('[DEBUG] Error in init:', error);
+                    this.error = error.message;
+                    this.debugInfo = 'Error: ' + error.message;
+                }
+            },
+
+            loadExtractedSkills() {
+                console.log('[DEBUG] Loading extracted skills...');
+                
+                // Try to get skills from URL parameters first (if redirected from homepage)
+                const urlParams = new URLSearchParams(window.location.search);
+                const skillIdsParam = urlParams.get('skills');
+                const skillNamesParam = urlParams.get('skill_names');
+                
+                console.log('[DEBUG] URL params - skills:', skillIdsParam, 'names:', skillNamesParam);
+                
+                if (skillIdsParam && skillNamesParam) {
+                    this.extractedSkillIds = skillIdsParam.split(',');
+                    this.extractedSkills = skillNamesParam.split(',');
+                    console.log('[DEBUG] Loaded from URL params');
+                } else {
+                    // Try sessionStorage
+                    const storedSkills = sessionStorage.getItem('extractedSkills');
+                    const storedSkillIds = sessionStorage.getItem('extractedSkillIds');
+                    
+                    console.log('[DEBUG] SessionStorage - skills:', storedSkills, 'IDs:', storedSkillIds);
+                    
+                    if (storedSkills && storedSkillIds) {
+                        this.extractedSkills = JSON.parse(storedSkills);
+                        this.extractedSkillIds = JSON.parse(storedSkillIds);
+                        console.log('[DEBUG] Loaded from sessionStorage');
+                    }
+                }
+            },
+
+            async extractSkillsFromResume(resumeText) {
+                console.log('[DEBUG] Extracting skills from resume...');
+                this.debugInfo = 'Extracting skills from resume...';
+                
+                try {
+                    const response = await fetch('/api/v1/career-paths/extract-skill-ids-from-text', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ resume_text: resumeText })
+                    });
+                    
+                    console.log('[DEBUG] Skill extraction response status:', response.status);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('[DEBUG] Skill extraction data:', data);
+                    
+                    if (data.success) {
+                        this.extractedSkillIds = data.skill_ids;
+                        this.extractedSkills = data.extracted_skill_names;
+                        
+                        // Store for future use
+                        sessionStorage.setItem('extractedSkills', JSON.stringify(this.extractedSkills));
+                        sessionStorage.setItem('extractedSkillIds', JSON.stringify(this.extractedSkillIds));
+                        
+                        console.log('[DEBUG] Skills extracted successfully, getting recommendations...');
+                        // Get recommendations
+                        this.getCareerRecommendations();
+                    } else {
+                        throw new Error(data.message || 'Skill extraction failed');
+                    }
+                } catch (error) {
+                    console.error('[DEBUG] Error extracting skills:', error);
+                    this.error = error.message;
+                    this.debugInfo = 'Error extracting skills: ' + error.message;
+                }
+            },
+
+            async getCareerRecommendations() {
+                if (this.extractedSkillIds.length === 0) {
+                    console.log('[DEBUG] No skills to get recommendations for');
+                    return;
+                }
+                
+                console.log('[DEBUG] Getting intelligent career recommendations for skills:', this.extractedSkillIds);
+                this.loading.recommendations = true;
+                this.error = null;
+                this.debugInfo = 'Getting intelligent career recommendations...';
+                
+                try {
+                    // Get resume text for intelligent analysis
+                    const resumeText = sessionStorage.getItem('resumeText');
+                    
+                    if (resumeText) {
+                        // Use intelligent recommendation with resume context
+                        console.log('[DEBUG] Using intelligent recommendation with resume context');
+                        const response = await fetch('/api/v1/career-paths/intelligent-recommendation', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                resume_text: resumeText,
+                                current_skill_ids: this.extractedSkillIds
+                            })
+                        });
+                        
+                        console.log('[DEBUG] Intelligent recommendations response status:', response.status);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        this.recommendations = await response.json();
+                        console.log('[DEBUG] Intelligent recommendations received:', this.recommendations);
+                        
+                        // Show resume analysis info if available
+                        if (this.recommendations.length > 0 && this.recommendations[0].resume_analysis) {
+                            const analysis = this.recommendations[0].resume_analysis;
+                            this.debugInfo = `Smart Analysis: Found ${analysis.detected_roles.length} role(s), ${analysis.industry_indicators.length} industry indicator(s). Confidence: ${Math.round(analysis.confidence_score * 100)}%`;
+                        }
+                    } else {
+                        // Fallback to basic recommendation
+                        console.log('[DEBUG] No resume text available, using basic recommendations');
+                        const response = await fetch('/api/v1/career-paths/recommend-career-paths', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(this.extractedSkillIds)
+                        });
+                        
+                        console.log('[DEBUG] Basic recommendations response status:', response.status);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        this.recommendations = await response.json();
+                        console.log('[DEBUG] Basic recommendations received:', this.recommendations);
+                    }
+                    
+                    // Auto-select the best match
+                    if (this.recommendations.length > 0) {
+                        console.log('[DEBUG] Auto-selecting best match:', this.recommendations[0]);
+                        this.selectRecommendedPath(this.recommendations[0]);
+                    }
+                    
+                    this.debugInfo = `Found ${this.recommendations.length} relevant career recommendations`;
+                } catch (error) {
+                    console.error('[DEBUG] Error getting recommendations:', error);
+                    this.error = error.message;
+                    this.debugInfo = 'Error getting recommendations: ' + error.message;
+                } finally {
+                    this.loading.recommendations = false;
+                }
+            },
+
+            selectRecommendedPath(recommendation) {
+                console.log('[DEBUG] Selecting recommended path:', recommendation);
+                this.selectedRecommendation = recommendation;
+                this.selectedPath = recommendation.career_path;
+                
+                // Update the skills chart
+                this.$nextTick(() => {
+                    this.updateSkillsChart();
+                });
+                
+                // Auto-select first stage
+                if (recommendation.stages_match.length > 0) {
+                    this.selectStageForAnalysis(recommendation.stages_match[0]);
+                }
+            },
+
+            async selectStageForAnalysis(stageMatch) {
+                console.log('[DEBUG] Selecting stage for analysis:', stageMatch);
+                this.loading.analysis = true;
+                
+                try {
+                    const response = await fetch('/api/v1/career-paths/skills-gap-analysis', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            current_skill_ids: this.extractedSkillIds,
+                            target_career_path_id: this.selectedPath.id,
+                            target_stage_name: stageMatch.stage_name
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('[DEBUG] Stage analysis data:', data);
+                    
+                    this.selectedStageAnalysis = {
+                        ...stageMatch,
+                        missing_skills_details: data.missing_skills
+                    };
+                } catch (error) {
+                    console.error('[DEBUG] Error analyzing stage:', error);
+                } finally {
+                    this.loading.analysis = false;
+                }
+            },
+
+            updateSkillsChart() {
+                console.log('[DEBUG] Updating skills chart...');
+                const ctx = document.getElementById('skillsChart');
+                if (!ctx) {
+                    console.log('[DEBUG] Chart canvas not found');
+                    return;
+                }
+                
+                // Destroy existing chart
+                if (this.skillsChart) {
+                    this.skillsChart.destroy();
+                }
+                
+                // Prepare data for all stages
+                const labels = this.selectedRecommendation.stages_match.map(s => s.stage_name.split(' ').slice(0, 2).join(' ')); // Shorten labels
+                const matchData = this.selectedRecommendation.stages_match.map(s => s.match_percentage);
+                const missingData = this.selectedRecommendation.stages_match.map(s => 100 - s.match_percentage);
+                
+                console.log('[DEBUG] Chart data - labels:', labels, 'match:', matchData, 'missing:', missingData);
+                
+                this.skillsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Skills You Have',
+                                data: matchData,
+                                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                borderColor: 'rgb(16, 185, 129)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Skills to Learn',
+                                data: missingData,
+                                backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                                borderColor: 'rgb(239, 68, 68)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.parsed.y + '%';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                                ticks: {
+                                    font: {
+                                        size: 10
+                                    },
+                                    maxRotation: 45
+                                }
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    font: {
+                                        size: 10
+                                    },
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        },
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            }
+                        }
+                    }
+                });
+                
+                console.log('[DEBUG] Chart created successfully');
+            },
+
+            getProgressColor(percentage) {
+                if (percentage >= 70) return '#10b981';
+                if (percentage >= 40) return '#f59e0b';
+                return '#ef4444';
+            },
+
+            // Career Trajectory Methods
+            async generateCareerTrajectory() {
+                if (!this.selectedPath || this.extractedSkillIds.length === 0) {
+                    console.log('[DEBUG] No selected path or skills for trajectory generation');
+                    return;
+                }
+
+                console.log('[DEBUG] Generating career trajectory...');
+                this.loading.trajectory = true;
+
+                try {
+                    // Generate career trajectory
+                    const trajectoryResponse = await fetch('/api/v1/career-paths/generate-career-trajectory', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            current_skill_ids: this.extractedSkillIds,
+                            target_career_path_id: this.selectedPath.id,
+                            user_experience_level: 'mid'
+                        })
+                    });
+
+                    if (trajectoryResponse.ok) {
+                        this.careerTrajectory = await trajectoryResponse.json();
+                        console.log('[DEBUG] Career trajectory generated:', this.careerTrajectory);
+                    }
+
+                    // Generate skill evolution data
+                    const evolutionResponse = await fetch('/api/v1/career-paths/skill-evolution', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            skill_ids: this.extractedSkillIds,
+                            timeline_months: 24
+                        })
+                    });
+
+                    if (evolutionResponse.ok) {
+                        this.skillEvolutions = await evolutionResponse.json();
+                        console.log('[DEBUG] Skill evolutions generated:', this.skillEvolutions);
+                    }
+
+                    // Generate industry transitions (example: finance to tech)
+                    const transitionResponse = await fetch('/api/v1/career-paths/industry-transition-analysis', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            current_industry: 'finance',
+                            target_industry: 'tech',
+                            current_skills: this.extractedSkillIds
+                        })
+                    });
+
+                    if (transitionResponse.ok) {
+                        this.industryTransitions = await transitionResponse.json();
+                        console.log('[DEBUG] Industry transitions generated:', this.industryTransitions);
+                    }
+
+                    // Get career growth patterns
+                    const patternsResponse = await fetch('/api/v1/career-paths/career-growth-patterns');
+
+                    if (patternsResponse.ok) {
+                        this.careerGrowthPatterns = await patternsResponse.json();
+                        console.log('[DEBUG] Career growth patterns loaded:', this.careerGrowthPatterns);
+                    }
+
+                } catch (error) {
+                    console.error('[DEBUG] Error generating career trajectory:', error);
+                    this.error = error.message;
+                } finally {
+                    this.loading.trajectory = false;
+                }
+            },
+
+            getTrajectoryDuration() {
+                if (!this.careerTrajectory) return 0;
+                
+                const startDate = new Date(this.careerTrajectory.start_date);
+                const endDate = new Date(this.careerTrajectory.target_completion_date);
+                const diffTime = Math.abs(endDate - startDate);
+                const diffMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
+                
+                return diffMonths;
+            },
+
+            formatDate(dateString) {
+                if (!dateString) return '';
+                
+                const date = new Date(dateString);
+                return date.toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+            },
+
+            getStageStatusColor(status) {
+                switch (status) {
+                    case 'Completed': return 'bg-green-500';
+                    case 'In Progress': return 'bg-blue-500';
+                    case 'Not Started': return 'bg-gray-400';
+                    default: return 'bg-gray-400';
+                }
+            },
+
+            getStageStatusIcon(status) {
+                switch (status) {
+                    case 'Completed': return 'fas fa-check';
+                    case 'In Progress': return 'fas fa-play';
+                    case 'Not Started': return 'fas fa-pause';
+                    default: return 'fas fa-circle';
+                }
+            },
+
+            getStatusBadgeColor(status) {
+                switch (status) {
+                    case 'Completed': return 'bg-green-100 text-green-800';
+                    case 'In Progress': return 'bg-blue-100 text-blue-800';
+                    case 'Not Started': return 'bg-gray-100 text-gray-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            },
+
+            selectStageEvolution(evolution) {
+                console.log('[DEBUG] Selected stage evolution:', evolution);
+                // Could expand stage details or show more information
+            },
+
+            getCurrentSkillLevel(evolution) {
+                if (!evolution.historical_levels || evolution.historical_levels.length === 0) return '0.0';
+                
+                const latestLevel = evolution.historical_levels[evolution.historical_levels.length - 1];
+                return latestLevel.level.toFixed(1);
+            },
+
+            getTransitionDifficultyColor(difficulty) {
+                switch (difficulty.toLowerCase()) {
+                    case 'easy': return 'border-green-400';
+                    case 'medium': return 'border-yellow-400';
+                    case 'hard': return 'border-red-400';
+                    default: return 'border-gray-400';
+                }
+            },
+
+            getDifficultyBadgeColor(difficulty) {
+                switch (difficulty.toLowerCase()) {
+                    case 'easy': return 'bg-green-100 text-green-800';
+                    case 'medium': return 'bg-yellow-100 text-yellow-800';
+                    case 'hard': return 'bg-red-100 text-red-800';
+                    default: return 'bg-gray-100 text-gray-800';
+                }
+            },
+
+            getSkillNameById(skillId) {
+                // Simple mapping for display purposes
+                const skillNames = {
+                    'python': 'Python',
+                    'sql': 'SQL',
+                    'data_analysis': 'Data Analysis',
+                    'cloud_computing': 'Cloud Computing',
+                    'product_strategy': 'Product Strategy',
+                    'user_research': 'User Research',
+                    'project_management': 'Project Management',
+                    'stakeholder_management': 'Stakeholder Management',
+                    'machine_learning': 'Machine Learning',
+                    'communication': 'Communication',
+                    'problem_solving': 'Problem Solving'
+                };
+                
+                return skillNames[skillId] || skillId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            }
+        }
+    }
+</script>
+{% endblock %} 

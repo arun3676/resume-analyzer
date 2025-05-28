@@ -1,180 +1,428 @@
 {% extends "base.html" %}
 
-{% block title %}Resume Analyzer - Upload Your Resume{% endblock %}
+{% block title %}Resume Analyzer - AI-Powered Career Intelligence{% endblock %}
+
+{% block head %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="cache-control" content="max-age=0">
+<meta name="cache-control" content="no-cache">
+<meta name="expires" content="0">
+<meta name="expires" content="Tue, 01 Jan 1980 1:00:00 GMT">
+<meta name="pragma" content="no-cache">
+{% endblock %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto">
-    <div class="text-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-800 mb-4">AI-Powered Resume Analysis</h1>
-        <p class="text-xl text-gray-600">Upload your resume and get instant insights and recommendations</p>
+<div class="min-h-screen" x-data="resumeManager()">
+    <!-- Hero Section -->
+    <div class="text-center py-16">
+        <h1 class="text-5xl font-bold text-gray-900 mb-6">
+            <i class="fas fa-brain text-teal-600 mr-4"></i>
+            AI-Powered Resume Analyzer
+        </h1>
+        <p class="text-xl text-gray-600 max-w-4xl mx-auto mb-8">
+            Upload your resume once and unlock powerful AI-driven insights: comprehensive analysis, interview preparation, and salary intelligence.
+        </p>
+        <!-- Debug info (remove in production) -->
+        <div class="text-xs text-gray-400 mb-4">
+            Page loaded: {{ cache_buster }} | Version: {{ version or 'v1.0' }}
+        </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-        <div class="file-upload rounded-lg p-8 text-center cursor-pointer" id="dropZone">
-            <input type="file" id="fileInput" class="hidden" accept=".pdf,.docx,.txt">
-            <div class="mb-4">
-                <i class="fas fa-cloud-upload-alt text-5xl text-gray-400"></i>
+    <!-- Centralized Resume Upload -->
+    <div class="max-w-4xl mx-auto mb-12">
+        <div class="card-modern p-8">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-6">
+                <i class="fas fa-upload text-teal-600 mr-3"></i>
+                Upload Your Resume
+            </h2>
+            <p class="text-center text-gray-600 mb-8">
+                Upload once, analyze everywhere. Your resume will be available across all our AI-powered features.
+            </p>
+
+            <!-- Upload Area -->
+            <div class="mb-6" x-show="!resumeUploaded">
+                <div class="file-upload p-8 rounded-xl text-center cursor-pointer transition-all duration-300"
+                     @dragover.prevent="dragOver = true"
+                     @dragleave.prevent="dragOver = false"
+                     @drop.prevent="handleFileDrop($event)"
+                     @click="$refs.fileInput.click()"
+                     :class="{'border-teal-400 bg-teal-50': dragOver}">
+                    <i class="fas fa-cloud-upload-alt text-6xl text-gray-400 mb-4"></i>
+                    <h3 class="text-xl font-semibold text-gray-700 mb-2">Drop your resume here</h3>
+                    <p class="text-gray-500 mb-4">or click to browse files</p>
+                    <p class="text-sm text-gray-400">Supports PDF, DOCX, and TXT files</p>
+                    <input type="file" x-ref="fileInput" @change="handleFileSelect($event)" 
+                           accept=".pdf,.docx,.txt" class="hidden">
+                </div>
             </div>
-            <h3 class="text-xl font-semibold text-gray-700 mb-2">Drag & Drop Your Resume</h3>
-            <p class="text-gray-500 mb-4">or click to browse files</p>
-            <p class="text-sm text-gray-400">Supported formats: PDF, DOCX, TXT</p>
+
+            <!-- Resume Already Loaded Indicator -->
+            <div x-show="resumeUploaded && !showSuccessMessage" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-file-alt text-blue-600 text-xl mr-3"></i>
+                        <div>
+                            <h4 class="font-semibold text-blue-900">Resume Ready</h4>
+                            <p class="text-blue-700 text-sm" x-text="uploadedFileName"></p>
+                        </div>
+                    </div>
+                    <button @click="clearResume()" 
+                            class="text-blue-600 hover:text-blue-800 transition-colors px-3 py-1 text-sm font-medium">
+                        <i class="fas fa-refresh mr-1"></i>
+                        Upload New
+                    </button>
+                </div>
+            </div>
+
+            <!-- Upload Success - Only show when actually uploaded in this session -->
+            <div id="resumeSuccessMessage" x-show="showSuccessMessage" class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-600 text-2xl mr-3"></i>
+                        <div>
+                            <h3 class="text-lg font-semibold text-green-900">Resume Uploaded Successfully!</h3>
+                            <p class="text-green-700" x-text="uploadedFileName"></p>
+                        </div>
+                    </div>
+                    <button @click="hideSuccessMessage()" class="text-green-600 hover:text-green-800 transition-colors">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Manual Text Input Alternative -->
+            <div class="mb-6" x-show="!resumeUploaded">
+                <div class="text-center mb-4">
+                    <span class="text-gray-500">or</span>
+                </div>
+                <textarea x-model="manualResumeText" rows="8" 
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          placeholder="Paste your resume text here..."></textarea>
+                <button @click="saveManualResume()" 
+                        :disabled="!manualResumeText.trim()"
+                        :class="manualResumeText.trim() ? 'btn-primary' : 'bg-gray-400 cursor-not-allowed'"
+                        class="mt-4 px-6 py-3 text-white font-semibold rounded-lg transition-all duration-200">
+                    <i class="fas fa-save mr-2"></i>
+                    Save Resume Text
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div x-show="isUploading" class="text-center py-8">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
+                <p class="text-gray-600">Processing your resume...</p>
+            </div>
+
+            <!-- Error State -->
+            <div x-show="uploadError" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+                    <p class="text-red-700" x-text="uploadError"></p>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div id="loading" class="hidden">
-        <div class="flex flex-col items-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
-            <p class="text-gray-600">Analyzing your resume...</p>
-        </div>
-    </div>
+    <!-- Feature Cards -->
+    <div class="max-w-7xl mx-auto mb-16">
+        <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">
+            Choose Your AI-Powered Analysis
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <!-- Resume Analysis Card -->
+            <div class="card-modern p-6 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-chart-bar text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Resume Analysis</h3>
+                    <p class="text-gray-600">Get comprehensive insights about your resume's strengths and areas for improvement.</p>
+                </div>
+                <ul class="space-y-2 mb-6">
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Skills assessment
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Job matching analysis
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Improvement suggestions
+                    </li>
+                </ul>
+                <button @click="navigateToFeature('analyzer')" 
+                        :disabled="!resumeUploaded"
+                        :class="resumeUploaded ? 'btn-primary w-full' : 'bg-gray-400 cursor-not-allowed w-full'"
+                        class="py-3 px-6 text-white font-semibold rounded-lg transition-all duration-200">
+                    <i class="fas fa-arrow-right mr-2"></i>
+                    <span x-text="resumeUploaded ? 'Analyze Resume' : 'Upload Resume First'"></span>
+                </button>
+            </div>
 
-    <div id="result" class="hidden">
-        <div class="bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">Analysis Results</h2>
-            <div id="resultContent"></div>
+            <!-- Interview Assistant Card -->
+            <div class="card-modern p-6 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-comments text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Interview Assistant</h3>
+                    <p class="text-gray-600">Prepare for interviews with AI-generated questions and feedback.</p>
+                </div>
+                <ul class="space-y-2 mb-6">
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Personalized questions
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Mock interview feedback
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        STAR method guidance
+                    </li>
+                </ul>
+                <button @click="navigateToFeature('interview')" 
+                        :disabled="!resumeUploaded"
+                        :class="resumeUploaded ? 'btn-primary w-full' : 'bg-gray-400 cursor-not-allowed w-full'"
+                        class="py-3 px-6 text-white font-semibold rounded-lg transition-all duration-200">
+                    <i class="fas fa-arrow-right mr-2"></i>
+                    <span x-text="resumeUploaded ? 'Start Interview Prep' : 'Upload Resume First'"></span>
+                </button>
+            </div>
+
+            <!-- Salary Intelligence Card -->
+            <div class="card-modern p-6 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-chart-line text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Salary Intelligence</h3>
+                    <p class="text-gray-600">Get AI-powered salary predictions and negotiation strategies.</p>
+                </div>
+                <ul class="space-y-2 mb-6">
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Salary range prediction
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Market positioning
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Negotiation strategies
+                    </li>
+                </ul>
+                <button @click="navigateToFeature('salary')" 
+                        :disabled="!resumeUploaded"
+                        :class="resumeUploaded ? 'btn-primary w-full' : 'bg-gray-400 cursor-not-allowed w-full'"
+                        class="py-3 px-6 text-white font-semibold rounded-lg transition-all duration-200">
+                    <i class="fas fa-arrow-right mr-2"></i>
+                    <span x-text="resumeUploaded ? 'Start Salary Analysis' : 'Upload Resume First'"></span>
+                </button>
+            </div>
+
+            <!-- Skills Dashboard Card -->
+            <div class="card-modern p-6 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-graduation-cap text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">Skills Dashboard</h3>
+                    <p class="text-gray-600">Explore career paths, identify skill gaps, and get learning recommendations.</p>
+                </div>
+                <ul class="space-y-2 mb-6">
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Career path exploration
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Skills gap analysis
+                    </li>
+                    <li class="flex items-center text-gray-700">
+                        <i class="fas fa-check text-green-500 mr-2"></i>
+                        Learning recommendations
+                    </li>
+                </ul>
+                <button @click="navigateToSkillsDashboard()" 
+                        class="btn-primary w-full py-3 px-6 text-white font-semibold rounded-lg transition-all duration-200">
+                    <i class="fas fa-arrow-right mr-2"></i>
+                    <span>Explore Skills Dashboard</span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
-    const loading = document.getElementById('loading');
-    const result = document.getElementById('result');
-    const resultContent = document.getElementById('resultContent');
+function resumeManager() {
+    return {
+        resumeUploaded: false,
+        uploadedFileName: '',
+        manualResumeText: '',
+        isUploading: false,
+        uploadError: '',
+        dragOver: false,
+        showSuccessMessage: false,
 
-    // Handle drag and drop
-    dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('border-purple-500');
-    });
-
-    dropZone.addEventListener('dragleave', () => {
-        dropZone.classList.remove('border-purple-500');
-    });
-
-    dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('border-purple-500');
-        const file = e.dataTransfer.files[0];
-        handleFile(file);
-    });
-
-    // Handle click to upload
-    dropZone.addEventListener('click', () => {
-        fileInput.click();
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        handleFile(file);
-    });
-
-    function handleFile(file) {
-        if (!file) return;
-
-        const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-        if (!validTypes.includes(file.type)) {
-            alert('Please upload a PDF, DOCX, or TXT file.');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        loading.classList.remove('hidden');
-        result.classList.add('hidden');
-
-        axios.post('/analyze', formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data'
+        init() {
+            // Check if resume is already uploaded, but don't show success message
+            const storedResumeText = sessionStorage.getItem('resumeText');
+            const storedResumeFile = sessionStorage.getItem('resumeFile');
+            
+            if (storedResumeText || storedResumeFile) {
+                this.resumeUploaded = true;
+                if (storedResumeFile) {
+                    const fileInfo = JSON.parse(storedResumeFile);
+                    this.uploadedFileName = fileInfo.name;
+                } else {
+                    this.uploadedFileName = 'Manual text input';
+                }
+                // Don't show success message on page load
+                this.showSuccessMessage = false;
             }
-        })
-        .then(response => {
-            loading.classList.add('hidden');
-            result.classList.remove('hidden');
-            displayResults(response.data);
-        })
-        .catch(error => {
-            loading.classList.add('hidden');
-            alert('Error analyzing resume: ' + error.message);
-        });
+        },
+
+        async handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                await this.uploadFile(file);
+            }
+        },
+
+        async handleFileDrop(event) {
+            this.dragOver = false;
+            const file = event.dataTransfer.files[0];
+            if (file) {
+                await this.uploadFile(file);
+            }
+        },
+
+        async uploadFile(file) {
+            this.isUploading = true;
+            this.uploadError = '';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch('/extract-resume-text', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Store resume text and file info
+                    sessionStorage.setItem('resumeText', result.resume_text);
+                    sessionStorage.setItem('resumeFile', JSON.stringify({
+                        name: file.name,
+                        type: file.type,
+                        size: file.size
+                    }));
+
+                    this.resumeUploaded = true;
+                    this.uploadedFileName = file.name;
+                    this.showSuccessMessage = true;
+                    
+                    console.log('Resume uploaded and stored successfully');
+                } else {
+                    throw new Error(result.error || 'Failed to process resume');
+                }
+            } catch (error) {
+                this.uploadError = error.message;
+                console.error('Upload error:', error);
+            } finally {
+                this.isUploading = false;
+            }
+        },
+
+        saveManualResume() {
+            if (this.manualResumeText.trim()) {
+                sessionStorage.setItem('resumeText', this.manualResumeText);
+                this.resumeUploaded = true;
+                this.uploadedFileName = 'Manual text input';
+                this.manualResumeText = '';
+                this.showSuccessMessage = true;
+                
+                console.log('Manual resume text saved successfully');
+            }
+        },
+
+        hideSuccessMessage() {
+            this.showSuccessMessage = false;
+        },
+
+        clearResume() {
+            sessionStorage.removeItem('resumeText');
+            sessionStorage.removeItem('resumeFile');
+            sessionStorage.removeItem('extractedSkills');
+            sessionStorage.removeItem('extractedSkillIds');
+            this.resumeUploaded = false;
+            this.uploadedFileName = '';
+            this.manualResumeText = '';
+            this.showSuccessMessage = false;
+            
+            console.log('Resume data cleared');
+        },
+
+        navigateToFeature(feature) {
+            const routes = {
+                'analyzer': '/resume-analysis',
+                'interview': '/interview-assistant',
+                'salary': '/salary-intelligence'
+            };
+            
+            if (routes[feature]) {
+                window.location.href = routes[feature];
+            }
+        },
+
+        async navigateToSkillsDashboard() {
+            const resumeText = sessionStorage.getItem('resumeText');
+            
+            if (resumeText) {
+                // Extract skills first
+                try {
+                    const response = await fetch('/api/v1/career-paths/extract-skill-ids-from-text', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ resume_text: resumeText })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success && data.skill_ids.length > 0) {
+                        // Store extracted skills
+                        sessionStorage.setItem('extractedSkills', JSON.stringify(data.extracted_skill_names));
+                        sessionStorage.setItem('extractedSkillIds', JSON.stringify(data.skill_ids));
+                        
+                        // Navigate with skills in URL
+                        const skillsParam = encodeURIComponent(data.skill_ids.join(','));
+                        const namesParam = encodeURIComponent(data.extracted_skill_names.join(','));
+                        window.location.href = `/skills-career-dashboard?skills=${skillsParam}&skill_names=${namesParam}`;
+                    } else {
+                        // Navigate without skills
+                        window.location.href = '/skills-career-dashboard';
+                    }
+                } catch (error) {
+                    console.error('Error extracting skills:', error);
+                    window.location.href = '/skills-career-dashboard';
+                }
+            } else {
+                window.location.href = '/skills-career-dashboard';
+            }
+        }
     }
-
-    function displayResults(data) {
-        let html = '';
-        
-        // Skills Section
-        if (data.skills) {
-            html += `
-                <div class="mb-6">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Skills</h3>
-                    <div class="flex flex-wrap gap-2">
-                        ${data.skills.map(skill => `
-                            <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
-                                ${skill}
-                            </span>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        // Experience Section
-        if (data.experience) {
-            html += `
-                <div class="mb-6">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Experience</h3>
-                    <div class="space-y-4">
-                        ${data.experience.map(exp => `
-                            <div class="border-l-4 border-purple-500 pl-4">
-                                <h4 class="font-semibold text-gray-800">${exp.title}</h4>
-                                <p class="text-gray-600">${exp.company}</p>
-                                <p class="text-sm text-gray-500">${exp.duration}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        // Education Section
-        if (data.education) {
-            html += `
-                <div class="mb-6">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Education</h3>
-                    <div class="space-y-4">
-                        ${data.education.map(edu => `
-                            <div class="border-l-4 border-purple-500 pl-4">
-                                <h4 class="font-semibold text-gray-800">${edu.degree}</h4>
-                                <p class="text-gray-600">${edu.institution}</p>
-                                <p class="text-sm text-gray-500">${edu.year}</p>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
-        }
-
-        // Recommendations Section
-        if (data.recommendations) {
-            html += `
-                <div class="mb-6">
-                    <h3 class="text-xl font-semibold text-gray-700 mb-3">Recommendations</h3>
-                    <ul class="list-disc list-inside space-y-2 text-gray-600">
-                        ${data.recommendations.map(rec => `
-                            <li>${rec}</li>
-                        `).join('')}
-                    </ul>
-                </div>
-            `;
-        }
-
-        resultContent.innerHTML = html;
-    }
-});
+}
 </script>
 {% endblock %}

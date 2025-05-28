@@ -1,0 +1,546 @@
+{% extends "base.html" %}
+
+{% block title %}Interview Preparation Assistant - Resume Analyzer{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="text-center mb-12">
+        <h1 class="text-5xl font-bold text-gray-800 mb-6">
+            <i class="fas fa-comments text-teal-600 mr-4"></i>Interview Preparation Assistant
+        </h1>
+        <p class="text-xl text-gray-600 leading-relaxed">Generate personalized interview questions and get AI-powered feedback on your answers</p>
+    </div>
+
+    <!-- Question Generation Section -->
+    <div class="card-modern p-8 mb-8">
+        <div class="flex items-center mb-6">
+            <i class="fas fa-question-circle text-3xl text-teal-600 mr-4"></i>
+            <h2 class="text-3xl font-bold text-gray-800">Generate Interview Questions</h2>
+        </div>
+        
+        <form id="questionForm">
+            <div class="grid md:grid-cols-2 gap-8 mb-6">
+                <!-- Resume Upload Section -->
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-file-upload text-2xl text-teal-600 mr-3"></i>
+                        <h3 class="text-xl font-semibold text-gray-700">Upload Resume</h3>
+                        <span class="ml-2 text-sm bg-red-100 text-red-700 px-2 py-1 rounded-full">Required</span>
+                    </div>
+                    
+                    <div class="file-upload rounded-2xl p-8 text-center cursor-pointer mb-4" id="resumeDropZone">
+                        <input type="file" id="resumeFileInput" class="hidden" accept=".pdf,.docx,.txt">
+                        <div class="mb-4">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-teal-500"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-gray-700 mb-2">Upload Your Resume</h4>
+                        <p class="text-gray-500 mb-2">or click to browse files</p>
+                        <p class="text-sm text-gray-400">PDF, DOCX, TXT (Max 10MB)</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="text-sm text-gray-600 mb-2 block">Or paste resume text manually:</label>
+                        <textarea 
+                            id="resumeText" 
+                            class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-200" 
+                            rows="6" 
+                            placeholder="Paste your resume text here...">
+                        </textarea>
+                    </div>
+                    <p id="resumeStatus" class="text-gray-500 text-sm">Please upload a resume or paste text</p>
+                </div>
+
+                <!-- Job Description Section -->
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-briefcase text-2xl text-teal-600 mr-3"></i>
+                        <h3 class="text-xl font-semibold text-gray-700">Job Description</h3>
+                        <span class="ml-2 text-sm bg-red-100 text-red-700 px-2 py-1 rounded-full">Required</span>
+                    </div>
+                    <textarea 
+                        id="jobDescription" 
+                        class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-200" 
+                        rows="12" 
+                        placeholder="Paste the job description here for personalized questions..." 
+                        required>
+                    </textarea>
+                </div>
+            </div>
+
+            <!-- Question Settings -->
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div>
+                    <label class="block text-lg font-semibold text-gray-700 mb-3">Question Types</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="checkbox" value="technical" class="question-type-checkbox mr-3 text-teal-600" checked>
+                            <span class="text-gray-700">Technical Questions</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" value="behavioral" class="question-type-checkbox mr-3 text-teal-600" checked>
+                            <span class="text-gray-700">Behavioral Questions</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" value="situational" class="question-type-checkbox mr-3 text-teal-600">
+                            <span class="text-gray-700">Situational Questions</span>
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <label for="numQuestions" class="block text-lg font-semibold text-gray-700 mb-3">Number of Questions</label>
+                    <select id="numQuestions" class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-200">
+                        <option value="3">3 Questions</option>
+                        <option value="5" selected>5 Questions</option>
+                        <option value="7">7 Questions</option>
+                        <option value="10">10 Questions</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="text-center">
+                <button 
+                    type="submit" 
+                    id="generateBtn"
+                    class="btn-primary text-white font-bold py-4 px-12 rounded-xl disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-300 text-lg"
+                    disabled>
+                    <i class="fas fa-magic mr-3"></i>
+                    Generate Questions
+                </button>
+                <div id="generateLoading" class="hidden mt-4">
+                    <div class="flex justify-center items-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-4 border-teal-600 mr-3"></div>
+                        <span class="text-gray-600">Generating personalized questions...</span>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Generated Questions Section -->
+    <div id="questionsSection" class="card-modern p-8 mb-8 hidden">
+        <div class="flex items-center mb-6">
+            <i class="fas fa-list text-3xl text-green-600 mr-4"></i>
+            <h2 class="text-3xl font-bold text-gray-800">Generated Interview Questions</h2>
+        </div>
+        <div id="questionsContainer">
+            <!-- Questions will be populated here -->
+        </div>
+    </div>
+
+    <!-- Mock Interview Section -->
+    <div class="card-modern p-8 mb-8">
+        <div class="flex items-center mb-6">
+            <i class="fas fa-microphone text-3xl text-blue-600 mr-4"></i>
+            <h2 class="text-3xl font-bold text-gray-800">Mock Interview Feedback</h2>
+        </div>
+        
+        <form id="feedbackForm">
+            <div class="mb-6">
+                <label for="interviewQuestion" class="block text-lg font-semibold text-gray-700 mb-3">Interview Question</label>
+                <textarea 
+                    id="interviewQuestion" 
+                    class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-200" 
+                    rows="3" 
+                    placeholder="Enter the interview question you want to practice..." 
+                    required>
+                </textarea>
+            </div>
+            
+            <div class="mb-6">
+                <label for="userAnswer" class="block text-lg font-semibold text-gray-700 mb-3">Your Answer</label>
+                <textarea 
+                    id="userAnswer" 
+                    class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-200" 
+                    rows="8" 
+                    placeholder="Type your answer here. For behavioral questions, try using the STAR method (Situation, Task, Action, Result)..." 
+                    required>
+                </textarea>
+            </div>
+            
+            <div class="mb-8">
+                <div class="flex items-center mb-3">
+                    <label for="contextJobDescription" class="text-lg font-semibold text-gray-700">Job Description Context</label>
+                    <span class="ml-2 text-sm bg-teal-100 text-teal-700 px-2 py-1 rounded-full">Optional</span>
+                </div>
+                <textarea 
+                    id="contextJobDescription" 
+                    class="w-full p-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition duration-200" 
+                    rows="4" 
+                    placeholder="Provide job description for better context (optional)...">
+                </textarea>
+            </div>
+
+            <div class="text-center">
+                <button 
+                    type="submit" 
+                    class="btn-primary text-white font-bold py-4 px-12 rounded-xl transition duration-300 text-lg">
+                    <i class="fas fa-comments mr-3"></i>
+                    Get AI Feedback
+                </button>
+                <div id="feedbackLoading" class="hidden mt-4">
+                    <div class="flex justify-center items-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-4 border-blue-600 mr-3"></div>
+                        <span class="text-gray-600">Analyzing your answer...</span>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Feedback Section -->
+    <div id="feedbackSection" class="card-modern p-8 mb-8 hidden">
+        <div class="flex items-center mb-6">
+            <i class="fas fa-star text-3xl text-yellow-500 mr-4"></i>
+            <h2 class="text-3xl font-bold text-gray-800">AI Feedback</h2>
+        </div>
+        <div id="feedbackContainer">
+            <!-- Feedback will be populated here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const resumeDropZone = document.getElementById('resumeDropZone');
+    const resumeFileInput = document.getElementById('resumeFileInput');
+    const resumeText = document.getElementById('resumeText');
+    const resumeStatus = document.getElementById('resumeStatus');
+    const generateBtn = document.getElementById('generateBtn');
+    
+    let selectedResumeFile = null;
+
+    // Auto-load resume from session storage
+    loadStoredResume();
+
+    function loadStoredResume() {
+        const storedResume = sessionStorage.getItem('resumeData');
+        
+        if (storedResume) { // Load if resumeData exists
+            try {
+                const resumeData = JSON.parse(storedResume);
+                resumeText.value = resumeData.text;
+                resumeStatus.textContent = `✓ Resume loaded: ${resumeData.fileName}`;
+                resumeStatus.className = 'text-green-600 text-sm';
+                
+                const preloadedFeatureFlag = sessionStorage.getItem('resumePreloadedForFeature');
+                if (preloadedFeatureFlag === 'interview') { // Check if flag is specifically for 'interview'
+                    // Show success message
+                    showAutoLoadMessage(resumeData.fileName); 
+                    sessionStorage.removeItem('resumePreloadedForFeature'); // Clear flag
+                }
+                
+                updateGenerateButton(); // Ensure button state is correct
+            } catch (error) {
+                console.error('Error loading stored resume:', error);
+                // Clear invalid data
+                sessionStorage.removeItem('resumeData');
+                // Also clear the preloaded flag if it's somehow still there after an error
+                sessionStorage.removeItem('resumePreloadedForFeature'); 
+            }
+        }
+    }
+
+    function showAutoLoadMessage(fileName) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'bg-green-50 border border-green-200 rounded-lg p-4 mb-6';
+        messageDiv.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
+                <div>
+                    <h3 class="text-green-900 font-semibold">Resume Auto-Loaded!</h3>
+                    <p class="text-green-700 text-sm">Using "${fileName}" from your previous upload.</p>
+                </div>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-green-600 hover:text-green-800">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Insert at the top of the main content
+        const mainContent = document.querySelector('.max-w-7xl');
+        mainContent.insertBefore(messageDiv, mainContent.firstChild);
+    }
+
+    // Handle resume file upload
+    resumeDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        resumeDropZone.classList.add('border-teal-500');
+    });
+
+    resumeDropZone.addEventListener('dragleave', () => {
+        resumeDropZone.classList.remove('border-teal-500');
+    });
+
+    resumeDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        resumeDropZone.classList.remove('border-teal-500');
+        const file = e.dataTransfer.files[0];
+        handleResumeFileSelection(file);
+    });
+
+    resumeDropZone.addEventListener('click', () => {
+        resumeFileInput.click();
+    });
+
+    resumeFileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        handleResumeFileSelection(file);
+    });
+
+    // Handle resume text input
+    resumeText.addEventListener('input', () => {
+        if (resumeText.value.trim()) {
+            selectedResumeFile = null;
+            resumeStatus.textContent = '✓ Resume text entered';
+            resumeStatus.className = 'text-green-600 text-sm';
+            updateGenerateButton();
+        } else if (!selectedResumeFile) {
+            resumeStatus.textContent = 'Please upload a resume or paste text';
+            resumeStatus.className = 'text-gray-500 text-sm';
+            updateGenerateButton();
+        }
+    });
+
+    function handleResumeFileSelection(file) {
+        if (!file) {
+            selectedResumeFile = null;
+            resumeStatus.textContent = 'Please upload a resume or paste text';
+            resumeStatus.className = 'text-gray-500 text-sm';
+            updateGenerateButton();
+            return;
+        }
+
+        const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+        if (!validTypes.includes(file.type)) {
+            alert('Please upload a PDF, DOCX, or TXT file.');
+            selectedResumeFile = null;
+            resumeStatus.textContent = 'Invalid file type. Please upload PDF, DOCX, or TXT.';
+            resumeStatus.className = 'text-red-500 text-sm';
+            updateGenerateButton();
+            return;
+        }
+
+        selectedResumeFile = file;
+        resumeText.value = ''; // Clear manual text input
+        resumeStatus.textContent = `✓ File uploaded: ${file.name}`;
+        resumeStatus.className = 'text-green-600 text-sm';
+        updateGenerateButton();
+    }
+
+    function updateGenerateButton() {
+        const hasResume = selectedResumeFile || resumeText.value.trim();
+        const hasJobDescription = document.getElementById('jobDescription').value.trim();
+        generateBtn.disabled = !(hasResume && hasJobDescription);
+    }
+
+    // Monitor job description input
+    document.getElementById('jobDescription').addEventListener('input', updateGenerateButton);
+
+    // Generate Questions
+    document.getElementById('questionForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const generateLoading = document.getElementById('generateLoading');
+        
+        // Show loading state
+        generateBtn.disabled = true;
+        generateLoading.classList.remove('hidden');
+        
+        try {
+            let resumeTextContent = '';
+            
+            // Get resume content from file or text
+            if (selectedResumeFile) {
+                const formData = new FormData();
+                formData.append('file', selectedResumeFile);
+                
+                // Extract text from file first
+                const extractResponse = await fetch('/extract-resume-text', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!extractResponse.ok) {
+                    throw new Error('Failed to extract text from resume file');
+                }
+                
+                const extractResult = await extractResponse.json();
+                if (!extractResult.success) {
+                    throw new Error(extractResult.error || 'Failed to extract text from resume');
+                }
+                resumeTextContent = extractResult.resume_text;
+            } else {
+                resumeTextContent = resumeText.value.trim();
+            }
+            
+            const questionTypes = Array.from(document.querySelectorAll('.question-type-checkbox:checked')).map(cb => cb.value);
+            
+            const requestData = {
+                resume_text: resumeTextContent,
+                job_description: document.getElementById('jobDescription').value,
+                question_types: questionTypes,
+                num_questions: parseInt(document.getElementById('numQuestions').value)
+            };
+            
+            const response = await fetch('/interview/generate-questions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            const result = await response.json();
+            displayQuestions(result.questions);
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error generating questions. Please try again.');
+        } finally {
+            // Hide loading state
+            generateBtn.disabled = false;
+            generateLoading.classList.add('hidden');
+            updateGenerateButton();
+        }
+    });
+    
+    // Get Feedback
+    document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const feedbackLoading = document.getElementById('feedbackLoading');
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        feedbackLoading.classList.remove('hidden');
+        
+        try {
+            const formData = {
+                question: document.getElementById('interviewQuestion').value,
+                user_answer: document.getElementById('userAnswer').value,
+                job_description: document.getElementById('contextJobDescription').value || null
+            };
+            
+            const response = await fetch('/interview/mock-interview-feedback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            const result = await response.json();
+            displayFeedback(result);
+            
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error getting feedback. Please try again.');
+        } finally {
+            // Hide loading state
+            submitBtn.disabled = false;
+            feedbackLoading.classList.add('hidden');
+        }
+    });
+    
+    function displayQuestions(questions) {
+        const container = document.getElementById('questionsContainer');
+        const section = document.getElementById('questionsSection');
+        
+        container.innerHTML = '';
+        
+        questions.forEach((question, index) => {
+            const questionCard = document.createElement('div');
+            questionCard.className = 'result-card p-6 mb-4';
+            
+            const typeColors = {
+                'technical': 'bg-blue-100 text-blue-800',
+                'behavioral': 'bg-green-100 text-green-800',
+                'situational': 'bg-purple-100 text-purple-800'
+            };
+            
+            questionCard.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Question ${index + 1}</h3>
+                    <span class="px-3 py-1 rounded-full text-sm font-semibold ${typeColors[question.type] || 'bg-gray-100 text-gray-800'}">${question.type}</span>
+                </div>
+                <p class="text-gray-700 text-lg leading-relaxed mb-4">${question.question}</p>
+                ${question.expected_answer_format ? 
+                    `<div class="bg-teal-50 border-l-4 border-teal-400 p-4 mb-4">
+                        <p class="text-teal-700"><i class="fas fa-info-circle mr-2"></i><strong>Expected format:</strong> ${question.expected_answer_format}</p>
+                    </div>` : 
+                    ''}
+                <button class="btn-primary text-white px-6 py-2 rounded-lg transition duration-200" onclick="useForMockInterview('${question.question.replace(/'/g, "\\'")}')">
+                    <i class="fas fa-arrow-down mr-2"></i>Use for Mock Interview
+                </button>
+            `;
+            
+            container.appendChild(questionCard);
+        });
+        
+        section.classList.remove('hidden');
+        section.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    function displayFeedback(feedback) {
+        const container = document.getElementById('feedbackContainer');
+        const section = document.getElementById('feedbackSection');
+        
+        let scoreHtml = '';
+        if (feedback.score !== null) {
+            const scorePercent = Math.round(feedback.score * 100);
+            const scoreColor = scorePercent >= 80 ? 'bg-green-500' : scorePercent >= 60 ? 'bg-yellow-500' : 'bg-red-500';
+            scoreHtml = `
+                <div class="mb-6">
+                    <div class="flex items-center">
+                        <span class="text-2xl font-bold text-gray-700 mr-4">Overall Score:</span>
+                        <span class="px-6 py-3 rounded-full text-white text-xl font-bold ${scoreColor}">${scorePercent}%</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        let suggestionsHtml = '';
+        if (feedback.suggestions_for_improvement && feedback.suggestions_for_improvement.length > 0) {
+            suggestionsHtml = `
+                <div class="mt-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-lightbulb text-yellow-500 mr-3"></i>Suggestions for Improvement
+                    </h3>
+                    <div class="space-y-3">
+                        ${feedback.suggestions_for_improvement.map(suggestion => 
+                            `<div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                                <p class="text-blue-800"><i class="fas fa-arrow-right mr-2"></i>${suggestion}</p>
+                            </div>`
+                        ).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = `
+            ${scoreHtml}
+            <div class="mb-6">
+                <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-comment text-blue-600 mr-3"></i>Detailed Feedback
+                </h3>
+                <div class="bg-gray-50 border-l-4 border-gray-400 p-6 rounded-r-lg">
+                    <p class="text-gray-700 text-lg leading-relaxed analysis-content">${feedback.feedback}</p>
+                </div>
+            </div>
+            ${suggestionsHtml}
+        `;
+        
+        section.classList.remove('hidden');
+        section.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    window.useForMockInterview = function(question) {
+        document.getElementById('interviewQuestion').value = question;
+        document.getElementById('interviewQuestion').scrollIntoView({ behavior: 'smooth' });
+    };
+});
+</script>
+{% endblock %} 

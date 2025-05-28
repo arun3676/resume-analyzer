@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Job Match</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Test Job Match Functionality</h1>
+    
+    <div>
+        <h3>Upload Resume:</h3>
+        <input type="file" id="resumeFile" accept=".txt,.pdf,.docx">
+    </div>
+    
+    <div>
+        <h3>Job Description:</h3>
+        <textarea id="jobDesc" rows="6" cols="80" placeholder="Paste job description here...">We are looking for a Senior React Developer with 3+ years experience. Required skills: React, JavaScript, Node.js, MongoDB, REST APIs. Experience with team leadership and modern testing frameworks preferred. AWS knowledge is a plus.</textarea>
+    </div>
+    
+    <div>
+        <button onclick="analyzeResume()">Analyze Match</button>
+    </div>
+    
+    <div id="results" style="margin-top: 20px; padding: 20px; border: 1px solid #ccc;"></div>
+
+    <script>
+        function analyzeResume() {
+            const fileInput = document.getElementById('resumeFile');
+            const jobDesc = document.getElementById('jobDesc').value;
+            const resultsDiv = document.getElementById('results');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a resume file');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            if (jobDesc.trim()) {
+                formData.append('job_description', jobDesc.trim());
+            }
+            
+            resultsDiv.innerHTML = 'Analyzing...';
+            
+            axios.post('/analyze', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            })
+            .then(response => {
+                console.log('Response:', response.data);
+                resultsDiv.innerHTML = `
+                    <h3>Analysis Results:</h3>
+                    <pre style="background: #f5f5f5; padding: 10px; white-space: pre-wrap;">${JSON.stringify(response.data, null, 2)}</pre>
+                `;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `Error: ${error.message}`;
+            });
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,554 @@
+{% extends "base.html" %}
+
+{% block title %}Salary Intelligence - Resume Analyzer{% endblock %}
+
+{% block content %}
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8" x-data="salaryIntelligence()">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                <i class="fas fa-chart-line text-green-600 mr-3"></i>
+                Salary Intelligence
+            </h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Get AI-powered salary predictions, market positioning analysis, and negotiation strategies based on your skills and experience.
+            </p>
+        </div>
+
+        <!-- Initial auto-load message (only if navigated from index with the flag) -->
+        <div x-show="initialPreloadMessage" class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 transition-all duration-300" x-transition>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
+                    <div>
+                        <h3 class="text-green-900 font-semibold" x-text="initialPreloadMessage"></h3>
+                    </div>
+                </div>
+                <button @click="initialPreloadMessage = ''" class="ml-auto text-green-600 hover:text-green-800">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- General "resume available in session" info, if not the initial preload message -->
+        <div x-show="resumeFileNameFromSession && !initialPreloadMessage" class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert" x-transition>
+            <p class="font-bold">Resume Available from Session</p>
+            <p>Resume "<span x-text="resumeFileNameFromSession"></span>" is available from your current session. It has been pre-filled below. You can use it, or update the details to override for this analysis.</p>
+        </div>
+
+        <!-- Input Form -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-6">
+                <i class="fas fa-user-tie text-blue-600 mr-2"></i>
+                Your Information
+            </h2>
+            
+            <form @submit.prevent="analyzeSalary()" class="space-y-6">
+                <!-- Resume Upload Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- File Upload -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-file-upload mr-1"></i>
+                            Upload Resume
+                        </label>
+                        <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors"
+                             @dragover.prevent="dragOver = true"
+                             @dragleave.prevent="dragOver = false"
+                             @drop.prevent="handleFileDrop($event)"
+                             :class="{'border-blue-400 bg-blue-50': dragOver}">
+                            <div class="space-y-1 text-center">
+                                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                                <div class="flex text-sm text-gray-600">
+                                    <label for="resume-file" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                        <span>Upload a file</span>
+                                        <input id="resume-file" name="resume-file" type="file" class="sr-only" 
+                                               accept=".pdf,.docx,.txt" @change="handleFileSelect($event)">
+                                    </label>
+                                    <p class="pl-1">or drag and drop</p>
+                                </div>
+                                <p class="text-xs text-gray-500">PDF, DOCX, TXT up to 10MB</p>
+                            </div>
+                        </div>
+                        <div x-show="selectedFile" class="mt-2 text-sm text-green-600">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            <span x-text="selectedFile?.name"></span>
+                        </div>
+                    </div>
+
+                    <!-- Manual Text Input -->
+                    <div>
+                        <label for="resume-text" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-edit mr-1"></i>
+                            Or Paste Resume Text
+                        </label>
+                        <textarea id="resume-text" x-model="resumeText" rows="8" 
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="Paste your resume text here..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Job Details -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="job-title" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-briefcase mr-1"></i>
+                            Job Title *
+                        </label>
+                        <input type="text" id="job-title" x-model="jobTitle" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="e.g., Software Engineer, Data Scientist">
+                    </div>
+
+                    <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-map-marker-alt mr-1"></i>
+                            Location *
+                        </label>
+                        <input type="text" id="location" x-model="location" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="e.g., San Francisco, CA or Remote">
+                    </div>
+                </div>
+
+                <!-- Additional Details -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label for="experience" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-calendar-alt mr-1"></i>
+                            Years of Experience
+                        </label>
+                        <input type="number" id="experience" x-model="yearsOfExperience" min="0" max="50"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="e.g., 5">
+                    </div>
+
+                    <div>
+                        <label for="company-size" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-building mr-1"></i>
+                            Company Size
+                        </label>
+                        <select id="company-size" x-model="companySize"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select size</option>
+                            <option value="startup">Startup (1-50)</option>
+                            <option value="small">Small (51-200)</option>
+                            <option value="medium">Medium (201-1000)</option>
+                            <option value="large">Large (1001-5000)</option>
+                            <option value="enterprise">Enterprise (5000+)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="industry" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-industry mr-1"></i>
+                            Industry
+                        </label>
+                        <input type="text" id="industry" x-model="industry"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                               placeholder="e.g., Technology, Healthcare">
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-center">
+                    <button type="submit" 
+                            :disabled="!canAnalyze || isLoading"
+                            :class="canAnalyze && !isLoading ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'"
+                            class="px-8 py-3 text-white font-semibold rounded-lg shadow-md transition-colors duration-200 flex items-center">
+                        <i class="fas fa-chart-line mr-2" :class="{'fa-spin': isLoading}"></i>
+                        <span x-text="isLoading ? 'Analyzing...' : 'Analyze Salary Intelligence'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Loading State -->
+        <div x-show="isLoading" class="bg-white rounded-lg shadow-lg p-8 text-center mb-8">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Analyzing Your Market Value</h3>
+            <p class="text-gray-600">Our AI is analyzing current market trends, salary data, and your profile...</p>
+        </div>
+
+        <!-- Results Section -->
+        <div x-show="results" class="space-y-6">
+            <!-- Salary Range Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-dollar-sign text-green-600 mr-2"></i>
+                    Predicted Salary Range
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-gray-700" x-text="formatCurrency(results?.predicted_salary_range?.min_salary)"></div>
+                        <div class="text-sm text-gray-500">Minimum</div>
+                    </div>
+                    <div class="text-center p-4 bg-green-50 rounded-lg border-2 border-green-200">
+                        <div class="text-3xl font-bold text-green-600" x-text="formatCurrency(results?.predicted_salary_range?.median_salary)"></div>
+                        <div class="text-sm text-green-600 font-medium">Expected</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-bold text-gray-700" x-text="formatCurrency(results?.predicted_salary_range?.max_salary)"></div>
+                        <div class="text-sm text-gray-500">Maximum</div>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center">
+                    <div class="flex items-center text-sm text-gray-600">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        <span>Confidence Level: </span>
+                        <span class="font-semibold ml-1" x-text="Math.round((results?.data_confidence || 0) * 100) + '%'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Market Positioning Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-chart-bar text-blue-600 mr-2"></i>
+                    Market Positioning
+                </h3>
+                <div class="mb-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Your Position</span>
+                        <span class="text-sm font-medium text-blue-600" x-text="Math.round(results?.market_positioning?.percentile || 0) + 'th percentile'"></span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div class="bg-blue-600 h-3 rounded-full transition-all duration-1000" 
+                             :style="`width: ${results?.market_positioning?.percentile || 0}%`"></div>
+                    </div>
+                </div>
+                <p class="text-lg text-gray-700 mb-4" x-text="results?.market_positioning?.positioning_text"></p>
+                <div class="space-y-2">
+                    <h4 class="font-semibold text-gray-900">Key Factors:</h4>
+                    <template x-for="factor in results?.market_positioning?.comparison_factors || []">
+                        <div class="flex items-center text-gray-700">
+                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                            <span x-text="factor"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Skill Value Analysis -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-cogs text-purple-600 mr-2"></i>
+                    Skill Value Analysis
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <template x-for="[skill, value] in Object.entries(results?.skill_value_analysis || {})">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <span class="font-medium text-gray-900" x-text="skill"></span>
+                            <div class="flex items-center">
+                                <div class="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                                    <div class="bg-purple-600 h-2 rounded-full" :style="`width: ${value * 10}%`"></div>
+                                </div>
+                                <span class="text-sm font-semibold text-purple-600" x-text="value + '/10'"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Negotiation Strategies -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-handshake text-orange-600 mr-2"></i>
+                    Negotiation Strategies
+                </h3>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <template x-for="strategy in results?.negotiation_strategies || []">
+                        <div class="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <h4 class="font-semibold text-lg mb-2 capitalize" x-text="strategy.strategy_type"></h4>
+                            <div class="space-y-3">
+                                <div>
+                                    <h5 class="font-medium text-gray-700 mb-1">Key Points:</h5>
+                                    <template x-for="point in strategy.key_points">
+                                        <div class="text-sm text-gray-600 flex items-start">
+                                            <i class="fas fa-arrow-right text-orange-500 mr-2 mt-1 text-xs"></i>
+                                            <span x-text="point"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div>
+                                    <h5 class="font-medium text-gray-700 mb-1">Timing:</h5>
+                                    <p class="text-sm text-gray-600" x-text="strategy.timing_advice"></p>
+                                </div>
+                                <div>
+                                    <h5 class="font-medium text-gray-700 mb-1">Leverage:</h5>
+                                    <template x-for="factor in strategy.leverage_factors">
+                                        <div class="text-sm text-gray-600 flex items-start">
+                                            <i class="fas fa-star text-yellow-500 mr-2 mt-1 text-xs"></i>
+                                            <span x-text="factor"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Recommendations -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>
+                    Recommendations
+                </h3>
+                <div class="space-y-3">
+                    <template x-for="recommendation in results?.recommendations || []">
+                        <div class="flex items-start p-3 bg-yellow-50 rounded-lg">
+                            <i class="fas fa-lightbulb text-yellow-600 mr-3 mt-1"></i>
+                            <span class="text-gray-700" x-text="recommendation"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Additional Insights -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-chart-pie text-indigo-600 mr-2"></i>
+                    Additional Insights
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="p-4 bg-indigo-50 rounded-lg">
+                        <h4 class="font-semibold text-indigo-900 mb-2">Location Adjustment</h4>
+                        <div class="text-2xl font-bold text-indigo-600" x-text="(results?.location_adjustment || 0) > 0 ? '+' + results?.location_adjustment + '%' : results?.location_adjustment + '%'"></div>
+                        <p class="text-sm text-indigo-700">Based on your location</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <h4 class="font-semibold text-green-900 mb-2">Experience Premium</h4>
+                        <div class="text-2xl font-bold text-green-600" x-text="'+' + (results?.experience_premium || 0) + '%'"></div>
+                        <p class="text-sm text-green-700">Based on your experience level</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div x-show="error" class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <i class="fas fa-exclamation-triangle text-red-500 text-3xl mb-3"></i>
+            <h3 class="text-lg font-semibold text-red-900 mb-2">Analysis Failed</h3>
+            <p class="text-red-700" x-text="error"></p>
+            <button @click="error = null" class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                Try Again
+            </button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function salaryIntelligence() {
+        return {
+            // Form data
+            resumeText: '',
+            selectedFile: null, // Can be a File object or { name: string, isFromSession: true }
+            jobTitle: '',
+            location: '',
+            yearsOfExperience: null,
+            companySize: '',
+            industry: '',
+            
+            // UI state
+            isLoading: false,
+            dragOver: false,
+            results: null,
+            error: null,
+            // autoLoaded: false, // Replaced by specific message states
+            resumeFileNameFromSession: '', // Name of resume file if loaded from session
+            initialPreloadMessage: '', // Message for one-time auto-load from index page
+
+            // Initialize
+            init() {
+                this.loadCurrentSessionResume(); // Load general session state first
+
+                const preloadedFeatureFlag = sessionStorage.getItem('resumePreloadedForFeature');
+                if (preloadedFeatureFlag === 'salary') { 
+                    if (this.resumeFileNameFromSession) { 
+                         this.initialPreloadMessage = `Resume "${this.resumeFileNameFromSession}" auto-loaded from your main upload.`;
+                    } else {
+                        this.initialPreloadMessage = "Tried to auto-load resume, but no data found in session.";
+                    }
+                    sessionStorage.removeItem('resumePreloadedForFeature'); // Clear flag
+                }
+                console.log('Salary Intelligence Alpine component initialized.');
+            },
+
+            loadCurrentSessionResume() {
+                const storedData = sessionStorage.getItem('resumeData');
+                if (storedData) {
+                    try {
+                        const resumeData = JSON.parse(storedData);
+                        // Always try to set these from session data when component initializes
+                        this.resumeText = resumeData.text;
+                        this.selectedFile = { name: resumeData.fileName || 'Uploaded Resume', isFromSession: true };
+                        this.resumeFileNameFromSession = resumeData.fileName || 'Uploaded Resume';
+                        console.log('Salary Intel: Initial resume data and filename set from session storage.');
+                    } catch (e) {
+                        console.error('Salary Intel: Error parsing session resume on init:', e);
+                        sessionStorage.removeItem('resumeData'); 
+                        this.resumeFileNameFromSession = '';
+                        this.resumeText = ''; 
+                        this.selectedFile = null;
+                    }
+                } else {
+                    this.resumeFileNameFromSession = '';
+                    // Alpine state will be at its defaults (empty string, null)
+                }
+            },
+            
+            // showAutoLoadMessage(fileName) { // This logic is now part of init for initialPreloadMessage
+            //     // Create and show a temporary success message
+            //     const messageDiv = document.createElement('div');
+            //     messageDiv.className = 'bg-green-50 border border-green-200 rounded-lg p-4 mb-6 transition-all duration-300';
+            //     messageDiv.innerHTML = \`
+            //         <div class="flex items-center">
+            //             <i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
+            //             <div>
+            //                 <h3 class="text-green-900 font-semibold">Resume Auto-Loaded!</h3>
+            //                 <p class="text-green-700 text-sm">Using "\${fileName}" from your previous upload.</p>
+            //             </div>
+            //             <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-green-600 hover:text-green-800">
+            //                 <i class="fas fa-times"></i>
+            //             </button>
+            //         </div>
+            //     \`;
+                
+            //     const mainContent = document.querySelector('.max-w-7xl');
+            //     if (mainContent && mainContent.firstChild) {
+            //        mainContent.insertBefore(messageDiv, mainContent.firstChild);
+            //     } else if (mainContent) {
+            //        mainContent.appendChild(messageDiv);
+            //     }
+            //     setTimeout(() => messageDiv.remove(), 7000); // Auto-remove after a few seconds
+            // },
+
+            // Computed properties
+            get canAnalyze() {
+                return (this.resumeText.trim() || this.selectedFile) && 
+                       this.jobTitle.trim() && 
+                       this.location.trim();
+            },
+
+            // File handling
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.selectedFile = file; // Actual File object, overwrites session placeholder
+                    this.resumeText = ''; // Clear text area if file is chosen
+                    this.resumeFileNameFromSession = ''; // No longer primarily relying on session filename for messages
+                    this.initialPreloadMessage = '';   // Clear initial preload message
+                }
+            },
+
+            handleFileDrop(event) {
+                this.dragOver = false;
+                const files = event.dataTransfer.files;
+                if (files.length > 0) {
+                    this.selectedFile = files[0]; // Actual File object
+                    this.resumeText = ''; // Clear text area
+                    this.resumeFileNameFromSession = ''; 
+                    this.initialPreloadMessage = '';
+                }
+            },
+
+            // Main analysis function
+            async analyzeSalary() {
+                this.isLoading = true;
+                this.error = null;
+                this.results = null;
+                let resumeTextToAnalyze = "";
+                let analysisSourceMessage = "";
+
+                try {
+                    // Determine resume text source
+                    if (this.selectedFile && this.selectedFile instanceof File) {
+                        analysisSourceMessage = "Extracting text from uploaded file: " + this.selectedFile.name;
+                        console.log('Salary Intel: ' + analysisSourceMessage);
+                        const formData = new FormData();
+                        formData.append('file', this.selectedFile);
+
+                        const extractResponse = await fetch('/extract-resume-text', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (!extractResponse.ok) {
+                            const errorData = await extractResponse.json().catch(() => ({}));
+                            throw new Error(errorData.detail || 'Failed to extract text from uploaded file.');
+                        }
+                        const extractData = await extractResponse.json();
+                        if (!extractData.success || !extractData.resume_text) {
+                            throw new Error(extractData.error || 'Failed to get text from uploaded file.');
+                        }
+                        resumeTextToAnalyze = extractData.resume_text;
+                    } else if (this.resumeText && this.resumeText.trim() !== "") {
+                        resumeTextToAnalyze = this.resumeText.trim();
+                        analysisSourceMessage = "Using text from text area";
+                        if (this.selectedFile && this.selectedFile.isFromSession) {
+                            analysisSourceMessage += ` (originally from session file: ${this.selectedFile.name})`;
+                        }
+                        console.log('Salary Intel: ' + analysisSourceMessage);
+                    } else {
+                        // This case should ideally be prevented by `canAnalyze` computed property
+                        throw new Error("No resume content. Please upload a resume file or paste text.");
+                    }
+
+                    // Prepare the analysis request
+                    const requestData = {
+                        resume_text: resumeTextToAnalyze,
+                        job_title: this.jobTitle,
+                        location: this.location,
+                        years_of_experience: this.yearsOfExperience ? parseInt(this.yearsOfExperience) : null,
+                        company_size: this.companySize || null,
+                        industry: this.industry || null
+                    };
+
+                    // Send analysis request
+                    const response = await fetch('/salary/analyze', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(requestData)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.detail || 'Analysis failed');
+                    }
+
+                    this.results = await response.json();
+                    
+                    // Scroll to results
+                    setTimeout(() => {
+                        document.querySelector('[x-show="results"]').scrollIntoView({ 
+                            behavior: 'smooth' 
+                        });
+                    }, 100);
+
+                } catch (error) {
+                    console.error('Error analyzing salary:', error);
+                    this.error = error.message || 'An unexpected error occurred';
+                } finally {
+                    this.isLoading = false;
+                }
+            },
+
+            // Utility functions
+            formatCurrency(amount) {
+                if (!amount) return '$0';
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                }).format(amount);
+            }
+        }
+    }
+</script>
+{% endblock %} 

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Analyzer Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin-top: 20px; padding: 20px; border: 1px solid #ccc; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Resume Analyzer API Test</h1>
+    
+    <div>
+        <input type="file" id="fileInput" accept=".txt,.pdf,.docx">
+        <br><br>
+        <textarea id="jobDescription" placeholder="Enter job description (optional)" rows="4" cols="50"></textarea>
+        <br><br>
+        <button onclick="testAPI()">Test API</button>
+    </div>
+    
+    <div id="result" class="result" style="display: none;">
+        <h3>API Response:</h3>
+        <div id="responseContent"></div>
+    </div>
+
+    <script>
+        async function testAPI() {
+            const fileInput = document.getElementById('fileInput');
+            const jobDescription = document.getElementById('jobDescription').value;
+            const resultDiv = document.getElementById('result');
+            const responseContent = document.getElementById('responseContent');
+            
+            if (!fileInput.files[0]) {
+                alert('Please select a file first');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            if (jobDescription.trim()) {
+                formData.append('job_description', jobDescription.trim());
+            }
+            
+            try {
+                console.log('Sending request to API...');
+                const response = await fetch('http://localhost:8003/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                resultDiv.style.display = 'block';
+                
+                if (response.ok) {
+                    responseContent.innerHTML = `
+                        <div class="success">
+                            <h4>✅ API Call Successful</h4>
+                            <p><strong>Success:</strong> ${data.success}</p>
+                            <p><strong>Analysis Length:</strong> ${data.analysis ? data.analysis.length : 0} characters</p>
+                            <p><strong>Has Skill Match Details:</strong> ${!!data.skill_match_details}</p>
+                            <hr>
+                            <h4>Full Analysis:</h4>
+                            <pre style="white-space: pre-wrap; background: #f5f5f5; padding: 10px;">${data.analysis || 'No analysis content'}</pre>
+                            <hr>
+                            <h4>Raw Response:</h4>
+                            <pre style="white-space: pre-wrap; background: #f0f0f0; padding: 10px; font-size: 12px;">${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    responseContent.innerHTML = `
+                        <div class="error">
+                            <h4>❌ API Call Failed</h4>
+                            <p><strong>Status:</strong> ${response.status}</p>
+                            <p><strong>Error:</strong> ${JSON.stringify(data, null, 2)}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.style.display = 'block';
+                responseContent.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Network Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 

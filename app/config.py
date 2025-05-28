@@ -10,9 +10,10 @@ load_dotenv()
 # API Keys
 
 PROMPTLAYER_API_KEY = os.getenv("PROMPTLAYER_API_KEY")
-
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gemini-1.5-pro")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+# GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "gemini-1.5-pro")
 
 # Application settings
 APP_NAME = "Resume Analyzer"
@@ -20,7 +21,8 @@ APP_VERSION = "0.1.0"
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 # LLM settings
-DEFAULT_MODEL = "gemini-1.5-pro"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "deepseek").lower()
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "deepseek-chat")
 TEMPERATURE = 0.2
 MAX_TOKENS = 4000
 

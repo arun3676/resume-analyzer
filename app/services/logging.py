@@ -7,27 +7,19 @@ from typing import Dict, Any, Optional
 
 from app.config import PROMPTLAYER_API_KEY
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+# Configure logging - REMOVED basicConfig
+# logging.basicConfig(
+#     level=logging.INFO,
+#     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# )
 
 logger = logging.getLogger(__name__)
 
 def initialize_promptlayer():
     """Initialize PromptLayer for logging."""
-    if PROMPTLAYER_API_KEY:
-        try:
-            promptlayer.api_key = PROMPTLAYER_API_KEY
-            logger.info("PromptLayer initialized successfully.")
-            return True
-        except Exception as e:
-            logger.error(f"Failed to initialize PromptLayer: {str(e)}")
-            return False
-    else:
-        logger.warning("PromptLayer API key not provided. Logging disabled.")
-        return False
+    # PromptLayer disabled for this project
+    logger.info("PromptLayer logging disabled.")
+    return False
 
 def log_prompt(
     provider: str,

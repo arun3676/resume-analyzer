@@ -30,7 +30,7 @@ def extract_skills(resume_text: str) -> List[str]:
         skills_text = " ".join(skill_matches)
         
         # Split by common separators like commas, bullets, etc.
-        skills = re.split(r'[,•|/]+', skills_text)
+        skills = re.split(r'[,•|/\n]+', skills_text)
         
         # Clean up and normalize skills
         skills = [skill.strip() for skill in skills if skill.strip()]

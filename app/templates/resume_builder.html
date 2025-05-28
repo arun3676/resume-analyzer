@@ -1,0 +1,1002 @@
+{% extends "base.html" %}
+
+{% block title %}AI Resume Builder - Create Your Perfect Resume{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <div class="text-center mb-12">
+        <h1 class="text-5xl font-bold text-gray-800 mb-6">🚀 AI Resume Builder</h1>
+        <p class="text-xl text-gray-600 leading-relaxed">Create optimized resumes tailored to specific jobs using advanced AI</p>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="card-modern p-2 mb-8">
+        <div class="flex flex-wrap justify-center space-x-2">
+            <button onclick="showTab('builder')" id="builderTab" class="tab-button active px-6 py-3 rounded-xl font-semibold transition duration-300">
+                <i class="fas fa-magic mr-2"></i>Build New Resume
+            </button>
+            <button onclick="showTab('optimizer')" id="optimizerTab" class="tab-button px-6 py-3 rounded-xl font-semibold transition duration-300">
+                <i class="fas fa-chart-line mr-2"></i>Optimize Existing
+            </button>
+            <button onclick="showTab('versions')" id="versionsTab" class="tab-button px-6 py-3 rounded-xl font-semibold transition duration-300">
+                <i class="fas fa-copy mr-2"></i>A/B Test Versions
+            </button>
+        </div>
+    </div>
+
+    <!-- Build New Resume Tab -->
+    <div id="builderSection" class="tab-content">
+        <div class="card-modern p-8 mb-8">
+            <div class="flex items-center mb-6">
+                <i class="fas fa-user-edit text-3xl text-teal-600 mr-4"></i>
+                <h2 class="text-3xl font-bold text-gray-800">Build Your AI-Optimized Resume</h2>
+            </div>
+            
+            <!-- Session resume info for Builder -->
+            <div id="builderSessionResumeInfo" class="mb-6"></div>
+            
+            <form id="buildResumeForm" class="space-y-6">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user mr-2 text-teal-600"></i>Full Name *
+                        </label>
+                        <input type="text" id="name" name="name" required 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                               placeholder="John Doe">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-envelope mr-2 text-teal-600"></i>Email *
+                        </label>
+                        <input type="email" id="email" name="email" required 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                               placeholder="john@example.com">
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-phone mr-2 text-teal-600"></i>Phone *
+                        </label>
+                        <input type="tel" id="phone" name="phone" required 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                               placeholder="+1 (555) 123-4567">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-briefcase mr-2 text-teal-600"></i>Target Role
+                        </label>
+                        <input type="text" id="targetRole" name="targetRole" 
+                               class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                               placeholder="Software Engineer, Data Analyst, etc.">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-tools mr-2 text-teal-600"></i>Skills *
+                    </label>
+                    <textarea id="skills" name="skills" required rows="3"
+                              class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              placeholder="Python, JavaScript, React, Machine Learning, AWS, etc. (comma-separated)"></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-building mr-2 text-teal-600"></i>Work Experience *
+                    </label>
+                    <textarea id="experience" name="experience" required rows="6"
+                              class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              placeholder="Describe your work experience including company names, roles, dates, and key achievements..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-graduation-cap mr-2 text-teal-600"></i>Education *
+                    </label>
+                    <textarea id="education" name="education" required rows="3"
+                              class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              placeholder="Degree, University, Year of graduation, relevant coursework..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-target mr-2 text-teal-600"></i>Job Description <span class="text-teal-600">(Optional - for targeted optimization)</span>
+                    </label>
+                    <textarea id="jobDescription" name="jobDescription" rows="8"
+                              class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              placeholder="Paste the complete job description here for AI to optimize your resume specifically for this role..."></textarea>
+                </div>
+
+                <div class="text-center">
+                    <button type="submit" class="btn-primary text-white font-bold py-4 px-12 rounded-xl transition duration-300 text-lg">
+                        <i class="fas fa-magic mr-3"></i>Generate AI Resume
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Optimize Existing Resume Tab -->
+    <div id="optimizerSection" class="tab-content hidden">
+        <div class="card-modern p-8 mb-8">
+            <div class="flex items-center mb-6">
+                <i class="fas fa-chart-line text-3xl text-teal-600 mr-4"></i>
+                <h2 class="text-3xl font-bold text-gray-800">Optimize Your Resume</h2>
+            </div>
+            
+            <!-- Auto-load messages -->
+            <div id="optimizerAutoLoadMessageContainer" class="mb-6"></div>
+
+            <form id="optimizeResumeForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-history mr-2 text-teal-600"></i>Your Current Resume Text (from session or pasted)
+                    </label>
+                    <textarea id="optimizerResumeText" name="resume_text" rows="10"
+                              class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              placeholder="Your resume text will appear here if loaded from session, or you can paste it directly. You can also upload a file below to override this."></textarea>
+                    <p id="optimizerSessionResumeStatus" class="text-sm text-gray-500 mt-1"></p>
+                </div>
+                
+                <div class="text-center text-gray-500 my-4">OR</div>
+
+                <div class="file-upload rounded-2xl p-12 text-center cursor-pointer" id="optimizeDropZone">
+                    <input type="file" id="optimizeFileInput" name="file" class="hidden" accept=".pdf,.docx,.txt">
+                    <div id="optimizeDropZoneIcon" class="mb-6">
+                        <i class="fas fa-file-upload text-6xl text-teal-500"></i>
+                    </div>
+                    <h3 id="optimizeDropZoneText" class="text-2xl font-semibold text-gray-700 mb-3">Upload Your Current Resume</h3>
+                    <p id="optimizeDropZoneHint" class="text-gray-500 mb-4 text-lg">Click to browse or drag & drop</p>
+                    <p id="optimizeDropZoneFormats" class="text-sm text-gray-400">Supported formats: PDF, DOCX, TXT (Max 10MB)</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-bullseye mr-2 text-teal-600"></i>Target Job Description *
+                    </label>
+                    <textarea id="optimizeJobDescription" name="job_description" required rows="8"
+                              class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                              placeholder="Paste the job description you want to optimize your resume for..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        <i class="fas fa-focus mr-2 text-teal-600"></i>Focus Areas <span class="text-gray-500">(Optional)</span>
+                    </label>
+                    <input type="text" id="focusAreas" name="focus_areas"
+                           class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                           placeholder="skills, experience, summary, keywords (comma-separated)">
+                </div>
+
+                <div class="text-center space-y-4">
+                    <button type="button" onclick="testConnection()" class="bg-green-500 text-white font-bold py-2 px-6 rounded-xl transition duration-300">
+                        <i class="fas fa-wifi mr-2"></i>Test Connection
+                    </button>
+                    <button type="button" onclick="testFileUpload()" class="bg-yellow-500 text-white font-bold py-2 px-6 rounded-xl transition duration-300">
+                        <i class="fas fa-bug mr-2"></i>Test File Upload
+                    </button>
+                    <br>
+                    <button type="submit" class="btn-primary text-white font-bold py-4 px-12 rounded-xl transition duration-300 text-lg">
+                        <i class="fas fa-rocket mr-3"></i>Optimize Resume
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- A/B Test Versions Tab -->
+    <div id="versionsSection" class="tab-content hidden">
+        <div class="card-modern p-8 mb-8">
+            <div class="flex items-center mb-6">
+                <i class="fas fa-copy text-3xl text-teal-600 mr-4"></i>
+                <h2 class="text-3xl font-bold text-gray-800">Generate Multiple Resume Versions</h2>
+            </div>
+            <p class="text-gray-600 mb-6">Create different styles of resumes to test which performs best for your target role.</p>
+            
+            <!-- Session resume info for A/B Test -->
+            <div id="versionsSessionResumeInfo" class="mb-6"></div>
+            
+            <form id="versionsForm" class="space-y-6">
+                <!-- Same form fields as builder but simplified -->
+                <div class="grid md:grid-cols-3 gap-6">
+                    <input type="text" id="versionsName" name="name" required 
+                           class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                           placeholder="Full Name">
+                    <input type="email" id="versionsEmail" name="email" required 
+                           class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                           placeholder="Email">
+                    <input type="tel" id="versionsPhone" name="phone" required 
+                           class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                           placeholder="Phone">
+                </div>
+
+                <textarea id="versionsSkills" name="skills" required rows="2"
+                          class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                          placeholder="Your skills (comma-separated)"></textarea>
+
+                <textarea id="versionsExperience" name="experience" required rows="4"
+                          class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                          placeholder="Your work experience"></textarea>
+
+                <textarea id="versionsEducation" name="education" required rows="2"
+                          class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                          placeholder="Your education"></textarea>
+
+                <textarea id="versionsJobDescription" name="job_description" required rows="6"
+                          class="w-full p-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                          placeholder="Target job description for optimization"></textarea>
+
+                <div class="text-center">
+                    <button type="submit" class="btn-primary text-white font-bold py-4 px-12 rounded-xl transition duration-300 text-lg">
+                        <i class="fas fa-layer-group mr-3"></i>Generate 3 Versions
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading" class="hidden">
+        <div class="card-modern p-12 text-center">
+            <div class="flex flex-col items-center">
+                <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-teal-600 mb-6"></div>
+                <h3 class="text-xl font-semibold text-gray-700 mb-2">AI is Creating Your Resume</h3>
+                <p class="text-gray-500">This may take 30-60 seconds...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div id="result" class="hidden">
+        <div class="card-modern p-8">
+            <div class="flex items-center mb-6">
+                <i class="fas fa-check-circle text-3xl text-green-600 mr-4"></i>
+                <h2 class="text-3xl font-bold text-gray-800">Your AI-Generated Resume</h2>
+            </div>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tab-button {
+        color: #64748b;
+        background: #f8fafc;
+    }
+    .tab-button.active {
+        background: linear-gradient(135deg, #14b8a6 0%, #0891b2 100%);
+        color: white;
+    }
+    .tab-button:hover:not(.active) {
+        background: #e2e8f0;
+        color: #475569;
+    }
+    .tab-content {
+        display: block;
+    }
+    .tab-content.hidden {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentFile = null;
+
+// Tab switching functionality
+function showTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.add('hidden');
+    });
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(tabName + 'Section').classList.remove('hidden');
+    document.getElementById(tabName + 'Tab').classList.add('active');
+
+    if (tabName === 'optimizer') {
+        console.log(`[showTab] Optimizer tab selected. Attempting to find #optimizeFileInput...`);
+        const el = document.getElementById('optimizeFileInput');
+        if (el) {
+            console.log(`[showTab] ✅ Found #optimizeFileInput:`, el);
+        } else {
+            console.error(`[showTab] ❌ FAILED to find #optimizeFileInput when optimizer tab was shown.`);
+        }
+    }
+}
+
+// File upload for optimizer
+document.addEventListener('DOMContentLoaded', function() {
+    setupFileUpload('optimizeDropZone', 'optimizeFileInput');
+    setupForms();
+});
+
+function setupFileUpload(dropZoneId, fileInputId) {
+    const dropZone = document.getElementById(dropZoneId);
+    const fileInput = document.getElementById(fileInputId);
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-teal-500');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-teal-500');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-teal-500');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelection(file, dropZoneId);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            handleFileSelection(file, dropZoneId);
+        }
+    });
+}
+
+function handleFileSelection(file, dropZoneId) {
+    const fileInput = document.getElementById('optimizeFileInput');
+    currentFile = file;
+    
+    // Update UI to show file selected by changing content of specific sub-elements
+    const iconDiv = document.getElementById(dropZoneId + 'Icon');
+    const textH3 = document.getElementById(dropZoneId + 'Text');
+    const hintP = document.getElementById(dropZoneId + 'Hint');
+    const formatsP = document.getElementById(dropZoneId + 'Formats');
+
+    if (iconDiv) {
+        iconDiv.innerHTML = `<i class="fas fa-check-circle text-6xl text-green-500"></i>`;
+    }
+    if (textH3) {
+        textH3.textContent = `File Selected: ${file.name}`;
+    }
+    if (hintP) {
+        hintP.textContent = 'Click to change file, or drag & drop new file here.';
+    }
+    if (formatsP) {
+        formatsP.classList.add('hidden'); // Optionally hide the formats text
+    }
+    
+    // Ensure the actual file input (which is hidden) has the file
+    if (fileInput) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        console.log('[handleFileSelection] File successfully assigned to #optimizeFileInput');
+    } else {
+        console.error('[handleFileSelection] CRITICAL: #optimizeFileInput not found when trying to assign file.');
+        alert('CRITICAL: File input element lost. Please refresh and try again.');
+    }
+}
+
+function setupForms() {
+    // Build Resume Form
+    document.getElementById('buildResumeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleBuildResume(e.target);
+    });
+
+    // Optimize Resume Form
+    document.getElementById('optimizeResumeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleOptimizeResume(e.target);
+    });
+
+    // Versions Form
+    document.getElementById('versionsForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleGenerateVersions(e.target);
+    });
+}
+
+async function handleBuildResume(form) {
+    const formData = new FormData(form);
+    
+    showLoading();
+
+    try {
+        const response = await axios.post('/build-resume', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        hideLoading();
+        displayBuildResults(response.data);
+    } catch (error) {
+        hideLoading();
+        alert('Error building resume: ' + (error.response?.data?.detail || error.message));
+    }
+}
+
+async function handleOptimizeResume(form) {
+    console.log('🚀 handleOptimizeResume called');
+    
+    const fileInput = document.getElementById('optimizeFileInput');
+    const jobDescriptionInput = document.getElementById('optimizeJobDescription');
+    const resumeTextArea = document.getElementById('optimizerResumeText');
+    
+    // Log elements for debugging
+    console.log('📁 [handleOptimizeResume] File input element (target):', fileInput);
+    console.log('📝 [handleOptimizeResume] Job description element (target):', jobDescriptionInput);
+    console.log('📄 [handleOptimizeResume] Resume textarea element (target):', resumeTextArea);
+    console.log('🗂️ [handleOptimizeResume] Current file variable (state):', currentFile); // This 'currentFile' global variable might be less relevant now
+    
+    // Robust check for element existence
+    if (!fileInput || !jobDescriptionInput || !resumeTextArea) {
+        alert('❌ [handleOptimizeResume] Critical error: A required form element is missing. Please refresh and report if the issue persists.');
+        console.error('❌ [handleOptimizeResume] Missing one or more elements: optimizeFileInput, optimizeJobDescription, or optimizerResumeText.');
+        return;
+    }
+    
+    console.log('📂 [handleOptimizeResume] File input files count (target):', fileInput.files.length);
+
+    const resumeTextFromArea = resumeTextArea.value.trim();
+    const fileIsSelected = fileInput.files.length > 0;
+    const jobDescriptionText = jobDescriptionInput.value.trim();
+    
+    if (!jobDescriptionText) {
+        alert('❌ [handleOptimizeResume] Please enter a job description.');
+        jobDescriptionInput.focus();
+        return;
+    }
+    
+    if (!resumeTextFromArea && !fileIsSelected) {
+        alert('❌ [handleOptimizeResume] Please provide your resume by either pasting text into the text area or uploading a file.');
+        // Optionally focus on the textarea or file input
+        if (!resumeTextFromArea) resumeTextArea.focus();
+        else fileInput.click(); // Or trigger click on dropZone
+        return;
+    }
+    
+    const formData = new FormData(form); // Create FormData from the form.
+                                        // This will include 'resume_text', 'file', 'job_description', 'focus_areas'
+                                        // based on their 'name' attributes.
+                                        // Event listeners should ensure that if fileIsSelected, resumeTextFromArea is blank,
+                                        // and if resumeTextFromArea has text, fileInput is cleared.
+
+    // Debug FormData contents from new FormData(form)
+    console.log('📋 [handleOptimizeResume] FormData contents from new FormData(form):');
+    for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+            console.log(key, '(File):', value.name, '; Size:', value.size, 'bytes; Type:', value.type);
+        } else {
+            // For text, ensure it's a string before calling substring
+            const valStr = String(value);
+            console.log(key, '(Text):', valStr.substring(0, 100) + (valStr.length > 100 ? '...' : ''));
+        }
+    }
+    
+    showLoading();
+
+    try {
+        console.log('🌐 [handleOptimizeResume] Sending request to /optimize-resume');
+        const response = await axios.post('/optimize-resume', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        console.log('✅ [handleOptimizeResume] Response received:', response.status);
+        console.log('📄 [handleOptimizeResume] Response data:', response.data);
+        hideLoading();
+        displayOptimizeResults(response.data);
+    } catch (error) {
+        console.error('❌ [handleOptimizeResume] Error details:', error);
+        hideLoading();
+        
+        let errorMessage = 'Unknown error occurred';
+        if (error.response) {
+            errorMessage = `Server error (${error.response.status}): ${error.response.data?.detail || error.response.statusText}`;
+            console.log('[handleOptimizeResume] Server response on error:', error.response.data);
+        } else if (error.request) {
+            errorMessage = 'Network error: No response from server';
+        } else {
+            errorMessage = error.message;
+        }
+        
+        alert('❌ [handleOptimizeResume] Error optimizing resume: ' + errorMessage);
+    }
+}
+
+async function handleGenerateVersions(form) {
+    const formData = new FormData(form);
+    
+    showLoading();
+
+    try {
+        const response = await axios.post('/generate-resume-versions', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        hideLoading();
+        displayVersionsResults(response.data);
+    } catch (error) {
+        hideLoading();
+        alert('Error generating versions: ' + (error.response?.data?.detail || error.message));
+    }
+}
+
+function showLoading() {
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('result').classList.add('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('loading').classList.add('hidden');
+}
+
+function displayBuildResults(data) {
+    const resultContent = document.getElementById('resultContent');
+    
+    if (!data.success) {
+        resultContent.innerHTML = `
+            <div class="bg-red-50 border-2 border-red-200 p-6 rounded-2xl">
+                <h3 class="text-xl font-bold text-red-800 mb-2">Error Building Resume</h3>
+                <p class="text-red-700">${data.error || 'An error occurred while building your resume.'}</p>
+            </div>
+        `;
+        document.getElementById('result').classList.remove('hidden');
+        return;
+    }
+
+    let html = `
+        <div class="space-y-6">
+            <div class="bg-green-50 border-2 border-green-200 p-6 rounded-2xl">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-trophy text-3xl text-green-600 mr-4"></i>
+                    <div>
+                        <h3 class="text-xl font-bold text-green-800">Resume Successfully Generated!</h3>
+                        <p class="text-green-700">ATS Score: ${data.ats_score || 'N/A'}/100</p>
+                    </div>
+                </div>
+            </div>
+    `;
+
+    if (data.professional_summary) {
+        html += `
+            <div class="result-card p-6">
+                <h4 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-user-tie mr-2 text-teal-600"></i>Professional Summary
+                </h4>
+                <p class="text-gray-700 leading-relaxed">${data.professional_summary}</p>
+            </div>
+        `;
+    }
+
+    if (data.skills && data.skills.length > 0) {
+        html += `
+            <div class="result-card p-6">
+                <h4 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-tools mr-2 text-teal-600"></i>Optimized Skills
+                </h4>
+                <div class="flex flex-wrap gap-2">
+                    ${data.skills.map(skill => `
+                        <span class="skill-tag px-3 py-2 rounded-lg text-sm font-medium">
+                            ${skill}
+                        </span>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    if (data.optimizations_applied && data.optimizations_applied.length > 0) {
+        html += `
+            <div class="result-card p-6">
+                <h4 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-magic mr-2 text-teal-600"></i>AI Optimizations Applied
+                </h4>
+                <ul class="space-y-2">
+                    ${data.optimizations_applied.map(opt => `
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-600 mr-2 mt-1"></i>
+                            <span class="text-gray-700">${opt}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    resultContent.innerHTML = html;
+    document.getElementById('result').classList.remove('hidden');
+}
+
+function displayOptimizeResults(data) {
+    const resultContent = document.getElementById('resultContent');
+    
+    if (!data.success) {
+        resultContent.innerHTML = `
+            <div class="bg-red-50 border-2 border-red-200 p-6 rounded-2xl">
+                <h3 class="text-xl font-bold text-red-800 mb-2">Error Optimizing Resume</h3>
+                <p class="text-red-700">${data.error || 'An error occurred while optimizing your resume.'}</p>
+            </div>
+        `;
+        document.getElementById('result').classList.remove('hidden');
+        return;
+    }
+
+    let html = `
+        <div class="space-y-6">
+            <div class="bg-blue-50 border-2 border-blue-200 p-6 rounded-2xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-chart-line text-3xl text-blue-600 mr-4"></i>
+                        <div>
+                            <h3 class="text-xl font-bold text-blue-800">Resume Optimized!</h3>
+                            <p class="text-blue-700">Job Match: ${data.match_percentage || 'N/A'}% | ATS Score: ${data.ats_score || 'N/A'}/100</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-card p-6">
+                <h4 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-file-alt mr-2 text-teal-600"></i>Optimized Resume
+                </h4>
+                <div class="bg-gray-50 p-6 rounded-xl">
+                    <pre class="whitespace-pre-wrap text-gray-700 leading-relaxed">${data.optimized_resume || 'No optimized content available.'}</pre>
+                </div>
+            </div>
+    `;
+
+    if (data.improvements && data.improvements.length > 0) {
+        html += `
+            <div class="result-card p-6">
+                <h4 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-lightbulb mr-2 text-yellow-600"></i>Key Improvements Made
+                </h4>
+                <ul class="space-y-2">
+                    ${data.improvements.map(improvement => `
+                        <li class="flex items-start">
+                            <i class="fas fa-arrow-up text-green-600 mr-2 mt-1"></i>
+                            <span class="text-gray-700">${improvement}</span>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    if (data.keywords_added && data.keywords_added.length > 0) {
+        html += `
+            <div class="result-card p-6">
+                <h4 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-tags mr-2 text-purple-600"></i>Keywords Added
+                </h4>
+                <div class="flex flex-wrap gap-2">
+                    ${data.keywords_added.map(keyword => `
+                        <span class="bg-purple-100 text-purple-800 px-3 py-2 rounded-lg text-sm font-medium">
+                            ${keyword}
+                        </span>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    resultContent.innerHTML = html;
+    document.getElementById('result').classList.remove('hidden');
+}
+
+function displayVersionsResults(data) {
+    const resultContent = document.getElementById('resultContent');
+    
+    if (!data.success || !data.versions) {
+        resultContent.innerHTML = `
+            <div class="bg-red-50 border-2 border-red-200 p-6 rounded-2xl">
+                <h3 class="text-xl font-bold text-red-800 mb-2">Error Generating Versions</h3>
+                <p class="text-red-700">An error occurred while generating resume versions.</p>
+            </div>
+        `;
+        document.getElementById('result').classList.remove('hidden');
+        return;
+    }
+
+    let html = `
+        <div class="space-y-8">
+            <div class="bg-purple-50 border-2 border-purple-200 p-6 rounded-2xl text-center">
+                <h3 class="text-2xl font-bold text-purple-800 mb-2">3 Resume Versions Generated!</h3>
+                <p class="text-purple-700">Compare these different styles to see which works best for your target role</p>
+            </div>
+    `;
+
+    data.versions.forEach((version, index) => {
+        const colors = ['bg-blue-50 border-blue-200', 'bg-green-50 border-green-200', 'bg-orange-50 border-orange-200'];
+        const icons = ['fas fa-business-time', 'fas fa-palette', 'fas fa-code'];
+        
+        html += `
+            <div class="result-card p-6 ${colors[index % colors.length]}">
+                <div class="flex items-center mb-4">
+                    <i class="${icons[index % icons.length]} text-2xl mr-3"></i>
+                    <h4 class="text-xl font-bold text-gray-800">Version ${index + 1}: ${version.style || 'Standard'}</h4>
+                    ${version.ats_score ? `<span class="ml-auto bg-white px-3 py-1 rounded-full text-sm font-semibold">ATS: ${version.ats_score}/100</span>` : ''}
+                </div>
+                
+                ${version.target_audience ? `<p class="text-gray-600 mb-4"><strong>Best for:</strong> ${version.target_audience}</p>` : ''}
+                
+                <div class="bg-white p-4 rounded-lg mb-4">
+                    <pre class="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">${version.resume_content || 'Content not available'}</pre>
+                </div>
+                
+                ${version.key_features && version.key_features.length > 0 ? `
+                    <div>
+                        <strong class="text-gray-800">Key Features:</strong>
+                        <ul class="list-disc list-inside mt-2 space-y-1">
+                            ${version.key_features.map(feature => `<li class="text-gray-600">${feature}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    resultContent.innerHTML = html;
+    document.getElementById('result').classList.remove('hidden');
+}
+
+async function testConnection() {
+    console.log('Testing server connection...');
+    try {
+        const response = await axios.get('/test_analyze');
+        console.log('Connection test response:', response.data);
+        alert('✅ Connection successful! Server is responding.');
+    } catch (error) {
+        console.error('Connection test error:', error);
+        alert('❌ Connection failed: ' + (error.message || 'Unknown error'));
+    }
+}
+
+async function testFileUpload() {
+    console.log('🚀 testFileUpload triggered');
+    const fileInput = document.getElementById('optimizeFileInput');
+    const jobDescriptionInput = document.getElementById('optimizeJobDescription');
+    
+    console.log('📁 [testFileUpload] File input element (target):', fileInput); // Renamed log
+    console.log('📝 [testFileUpload] Job description element (target):', jobDescriptionInput); // Renamed log
+    console.log('🗂️ [testFileUpload] Current file variable (state):', currentFile); // Renamed log
+    console.log('📂 [testFileUpload] File input files count (target):', fileInput ? fileInput.files.length : 'null'); // Renamed log
+    
+    if (!fileInput) {
+        alert('❌ [testFileUpload] File input element #optimizeFileInput NOT FOUND!');
+        console.error('❌ [testFileUpload] document.getElementById(\'optimizeFileInput\') returned null.');
+        return;
+    }
+    
+    if (!jobDescriptionInput) {
+        alert('❌ [testFileUpload] Job description input element #optimizeJobDescription NOT FOUND!');
+        console.error('❌ [testFileUpload] document.getElementById(\'optimizeJobDescription\') returned null.');
+        return;
+    }
+    
+    if (fileInput.files.length === 0) {
+        alert('❌ [testFileUpload] Please select a file first. Files in input: ' + fileInput.files.length);
+        return;
+    }
+    
+    if (!jobDescriptionInput.value.trim()) {
+        alert('❌ [testFileUpload] Please enter a job description.');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('job_description', jobDescriptionInput.value.trim());
+    
+    console.log('✅ [testFileUpload] FormData created with file:', fileInput.files[0].name);
+    console.log('✅ [testFileUpload] FormData created with job description length:', jobDescriptionInput.value.trim().length);
+    
+    try {
+        console.log('🌐 [testFileUpload] Sending test request to /test-file-upload...');
+        const response = await axios.post('/test-file-upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        console.log('📄 [testFileUpload] Test response data:', response.data);
+        alert('✅ [testFileUpload] Test successful! File: ' + response.data.filename + ', Size: ' + response.data.file_size + ' bytes');
+    } catch (error) {
+        console.error('❌ [testFileUpload] Test error details:', error);
+        let errorMessage = 'Unknown error occurred';
+        if (error.response) {
+            errorMessage = `Server error (${error.response.status}): ${error.response.data?.detail || error.response.statusText}`;
+            console.log('[testFileUpload] Server response on error:', error.response.data);
+        } else if (error.request) {
+            errorMessage = 'Network error: No response from server';
+        } else {
+            errorMessage = error.message;
+        }
+        alert('❌ [testFileUpload] Test failed: ' + errorMessage);
+    }
+}
+
+const optimizerResumeText = document.getElementById('optimizerResumeText');
+const optimizerSessionResumeStatus = document.getElementById('optimizerSessionResumeStatus');
+const optimizerAutoLoadMessageContainer = document.getElementById('optimizerAutoLoadMessageContainer');
+
+function loadOptimizerSessionResume() {
+    const storedResume = sessionStorage.getItem('resumeData');
+    optimizerAutoLoadMessageContainer.innerHTML = ''; // Clear previous messages
+
+    if (storedResume) {
+        try {
+            const resumeData = JSON.parse(storedResume);
+            optimizerResumeText.value = resumeData.text;
+            const fileName = resumeData.fileName || 'Uploaded Resume';
+            optimizerSessionResumeStatus.textContent = `✓ Pre-filled with resume from session: ${fileName}. You can edit or upload a new file to override.`;
+            optimizerSessionResumeStatus.className = 'text-sm text-green-600 mt-1';
+
+            const preloadedFeatureFlag = sessionStorage.getItem('resumePreloadedForFeature');
+            if (preloadedFeatureFlag === 'builder' || preloadedFeatureFlag === 'optimizer') { // Treat 'builder' nav as intending to optimize
+                showOptimizerAutoLoadMessage(`Resume "${fileName}" auto-loaded from your main upload for optimization.`, 'success');
+                sessionStorage.removeItem('resumePreloadedForFeature'); // Clear flag
+            } else {
+                 // Generic message if session resume exists but not from direct preload
+                showOptimizerAutoLoadMessage(`Resume "${fileName}" is available from your current session and has been pre-filled for optimization.`, 'info');
+            }
+            
+        } catch (error) {
+            console.error('Error loading stored resume into optimizer:', error);
+            optimizerSessionResumeStatus.textContent = 'Could not load resume from session. Please paste or upload.';
+            optimizerSessionResumeStatus.className = 'text-sm text-red-600 mt-1';
+            sessionStorage.removeItem('resumeData');
+            sessionStorage.removeItem('resumePreloadedForFeature');
+        }
+    } else {
+        optimizerSessionResumeStatus.textContent = 'No resume found in session. Paste your resume above or upload a file.';
+        optimizerSessionResumeStatus.className = 'text-sm text-gray-500 mt-1';
+    }
+}
+
+function showOptimizerAutoLoadMessage(message, type = 'success') {
+    const messageDiv = document.createElement('div');
+    let bgColor, borderColor, textColor, iconClass;
+
+    if (type === 'success') {
+        bgColor = 'bg-green-50';
+        borderColor = 'border-green-200';
+        textColor = 'text-green-700';
+        iconClass = 'fas fa-check-circle text-green-600';
+    } else { // info
+        bgColor = 'bg-blue-50';
+        borderColor = 'border-blue-200';
+        textColor = 'text-blue-700';
+        iconClass = 'fas fa-info-circle text-blue-600';
+    }
+
+    messageDiv.className = `${bgColor} border ${borderColor} rounded-lg p-4 mb-6 transition-all duration-300`;
+    messageDiv.innerHTML = `
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <i class="${iconClass} text-xl mr-3"></i>
+                <div>
+                    <p class="${textColor} text-sm">${message}</p>
+                </div>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-auto ${textColor} hover:opacity-75">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    optimizerAutoLoadMessageContainer.appendChild(messageDiv);
+}
+
+// Call on page load for the optimizer tab
+if (document.getElementById('optimizerSection')) { // Ensure this runs only if optimizer section is on the page
+    loadOptimizerSessionResume();
+}
+
+// When file is selected for optimizer, clear the session-loaded text to give precedence to the file.
+const optimizeFileInput = document.getElementById('optimizeFileInput');
+if (optimizeFileInput) {
+    optimizeFileInput.addEventListener('change', () => {
+        if (optimizeFileInput.files && optimizeFileInput.files.length > 0) {
+            optimizerResumeText.value = ''; // Clear session/pasted text
+            optimizerSessionResumeStatus.textContent = 'File selected for upload will be used.';
+            optimizerSessionResumeStatus.className = 'text-sm text-blue-600 mt-1';
+            // Clear auto-load messages if a new file is chosen
+            optimizerAutoLoadMessageContainer.innerHTML = '';
+        }
+    });
+}
+
+// If user types in optimizerResumeText, update status
+if (optimizerResumeText) {
+    optimizerResumeText.addEventListener('input', () => {
+        if (optimizerResumeText.value.trim() !== "") {
+            // If there was a file selected, and now user types, we assume they want to use the text.
+            if (optimizeFileInput.files && optimizeFileInput.files.length > 0) {
+                optimizeFileInput.value = ""; // Clear file input
+                 document.getElementById('optimizeDropZoneText').textContent = 'Upload Your Current Resume';
+                 document.getElementById('optimizeDropZoneHint').textContent = 'Click to browse or drag & drop';
+            }
+             optimizerSessionResumeStatus.textContent = 'Using manually entered/edited text.';
+             optimizerSessionResumeStatus.className = 'text-sm text-orange-600 mt-1';
+        } else if (!(optimizeFileInput.files && optimizeFileInput.files.length > 0)) {
+             optimizerSessionResumeStatus.textContent = 'Paste resume or upload a file.';
+             optimizerSessionResumeStatus.className = 'text-sm text-gray-500 mt-1';
+        }
+    });
+}
+
+const builderSessionResumeInfo = document.getElementById('builderSessionResumeInfo');
+const versionsSessionResumeInfo = document.getElementById('versionsSessionResumeInfo');
+let sessionResumeTextForCopy = ''; // Store text for copy function
+
+function displaySessionResumeMessage(containerElement, featureName) {
+    const storedResume = sessionStorage.getItem('resumeData');
+    if (storedResume && containerElement) {
+        try {
+            const resumeData = JSON.parse(storedResume);
+            sessionResumeTextForCopy = resumeData.text; // Store for the button
+            const fileName = resumeData.fileName || 'Uploaded Resume';
+            
+            let message = `You have a resume in your current session ("${fileName}"). You can view and copy its content to help fill out the fields below.`;
+            let messageType = 'info'; // 'info' or 'success' for direct preload
+
+            const preloadedFeatureFlag = sessionStorage.getItem('resumePreloadedForFeature');
+            // Check if this specific feature was preloaded
+            if (preloadedFeatureFlag === 'builder') { // Assuming 'builder' is the flag for navigating to this feature section
+                message = `Resume "${fileName}" was auto-loaded from your main upload. View and copy its content to use in the ${featureName}.`;
+                messageType = 'success';
+                // Clear the flag only if it matches this specific context to avoid clearing it prematurely for other tabs.
+                // The optimizer tab now handles its own 'builder' or 'optimizer' flag clearing.
+                // sessionStorage.removeItem('resumePreloadedForFeature'); 
+            }
+
+            let bgColor = messageType === 'success' ? 'bg-green-50' : 'bg-blue-50';
+            let borderColor = messageType === 'success' ? 'border-green-200' : 'border-blue-200';
+            let textColor = messageType === 'success' ? 'text-green-700' : 'text-blue-700';
+            let iconClass = messageType === 'success' ? 'fas fa-check-circle text-green-600' : 'fas fa-info-circle text-blue-600';
+
+            containerElement.innerHTML = `
+                <div class="${bgColor} border ${borderColor} rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i class="${iconClass} text-xl mr-3"></i>
+                            <p class="${textColor} text-sm">${message}</p>
+                        </div>
+                        <button onclick="viewAndCopySessionResume()" class="ml-4 px-3 py-1.5 text-xs font-medium ${textColor} border ${borderColor} rounded-md hover:opacity-75">
+                            <i class="fas fa-copy mr-1"></i> View & Copy
+                        </button>
+                    </div>
+                </div>`;
+        } catch (e) {
+            console.error(`Error displaying session resume message for ${featureName}:`, e);
+            sessionResumeTextForCopy = '';
+        }
+    }
+}
+
+window.viewAndCopySessionResume = function() {
+    if (sessionResumeTextForCopy) {
+        // Simple alert for now. A modal would be a UX improvement.
+        alert("Session Resume Content (Press Ctrl+C to copy):\n\n" + sessionResumeTextForCopy);
+    } else {
+        alert("No session resume content found to copy.");
+    }
+}
+
+// Call for builder and versions tabs
+displaySessionResumeMessage(builderSessionResumeInfo, "Resume Builder");
+displaySessionResumeMessage(versionsSessionResumeInfo, "A/B Test Versions");
+</script>
+{% endblock %} 

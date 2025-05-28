@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Storage Clear Test</title>
+</head>
+<body>
+    <h1>Storage Clear Test</h1>
+    <div id="status"></div>
+    
+    <button onclick="setTestData()">Set Test Data</button>
+    <button onclick="clearAllData()">Clear All Data</button>
+    <button onclick="checkData()">Check Data</button>
+    
+    <script>
+        function setTestData() {
+            sessionStorage.setItem('resumeData', JSON.stringify({
+                text: 'test resume',
+                fileName: 'test.pdf',
+                uploadedAt: new Date().toISOString()
+            }));
+            localStorage.setItem('testData', 'test value');
+            updateStatus('Test data set');
+        }
+        
+        function clearAllData() {
+            sessionStorage.clear();
+            localStorage.clear();
+            updateStatus('All data cleared');
+        }
+        
+        function checkData() {
+            const sessionData = sessionStorage.getItem('resumeData');
+            const localData = localStorage.getItem('testData');
+            
+            updateStatus(`Session: ${sessionData ? 'EXISTS' : 'EMPTY'}, Local: ${localData ? 'EXISTS' : 'EMPTY'}`);
+        }
+        
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = `<p>${new Date().toLocaleTimeString()}: ${message}</p>` + document.getElementById('status').innerHTML;
+        }
+        
+        // Auto-check on load
+        checkData();
+    </script>
+</body>
+</html> 
